@@ -212,53 +212,79 @@ function renderRanking() {
     </div>`;
   }).join('');
 }
-
+  
 // สร้างกราฟเส้นแนวโน้ม
 function renderTrend() {
   const svg = document.getElementById('trendSvg');
-  const YEARS = [...new Set(DATA.map(d => d.y))].sort((a,b) => a - b);
+  // กรองหาปีทั้งหมดที่มีในข้อมูลและเรียงจากน้อยไปมาก
+  const YEARS = [...new Set(DATA.map(d => d.y))].filter(y => y != null).sort((a,b) => a - b);
   if(YEARS.length === 0) return;
 
   const plotProvinces = [TARGET_PROVINCE, 'กรุงเทพมหานคร', 'ประเทศไทย']; 
   
   let svgContent = '';
-  const W = 800, H = 220, PT = 20, PB = 30, PL = 50, PR = 50;
+  const W = 800, H = 220, PT = 20, PB = 30, PL = 50, PR = 80;
   
-  // หาค่า min/max เพื่อตีสเกล
-  const allVals = DATA.filter(d => plotProvinces.includes(d.pt) && d.a1559 != null).map(d => d.a1559);
+  // ดึงค่าทั้งหมดมาหา min/max เพื่อตีสเกลแกน Y
+  const allVals = DATA
+    .filter(d => plotProvinces.includes(d.pt) && d.a1559 != null)
+    .map(d => parseFloat(d.a1559))
+    .filter(v => !isNaN(v));
+
   const minV = allVals.length ? Math.floor(Math.min(...allVals)) - 0.5 : 8;
   const maxV = allVals.length ? Math.ceil(Math.max(...allVals)) + 0.5 : 12;
   
   const xs = i => PL + (i * ((W - PL - PR) / Math.max(1, YEARS.length - 1)));
   const ys = v => PT + ((maxV - v) / (maxV - minV) * (H - PT - PB));
 
-  // แถบแกน X
+  // แถบแกน X (ปี พ.ศ.)
   YEARS.forEach((y, i) => {
     svgContent += `<text x="${xs(i)}" y="${H - 10}" text-anchor="middle" fill="#64748b" font-family="IBM Plex Mono" font-size="12">${y}</text>`;
   });
 
-  // วาดเส้นกราฟ
+  // วาดเส้นกราฟและจุด
   plotProvinces.forEach(prov => {
     const isTarget = prov === TARGET_PROVINCE;
     const isTH = prov === 'ประเทศไทย';
-    const strokeColor = isTarget ? '#2563eb' : (isTH ? '#1e3a8a' : '#93c5fd'); // สีหลัก, กรมท่า, ฟ้าอ่อน
+    const strokeColor = isTarget ? '#2563eb' : (isTH ? '#1e3a8a' : '#93c5fd');
     const strokeWidth = isTarget ? 4 : 2;
     
     let path = '';
+    let isFirstPoint = true; // ตัวแปรเช็กจุดแรกของกราฟ
+    let lastPoint = null;
+
     YEARS.forEach((y, i) => {
       const d = DATA.find(item => item.pt === prov && item.y === y);
-      if(d && d.a1559) {
-        path += (i === 0 ? 'M ' : ' L ') + `${xs(i)},${ys(d.a1559)}`;
-        svgContent += `<circle cx="${xs(i)}" cy="${ys(d.a1559)}" r="${isTarget?5:3}" fill="${strokeColor}"></circle>`;
-        
-        if (i === YEARS.length - 1) {
-           svgContent += `<text x="${xs(i)+12}" y="${ys(d.a1559)+4}" fill="${strokeColor}" font-weight="${isTarget?'bold':'normal'}" font-size="12">${prov}</text>`;
+      
+      // เช็กว่าปีนั้นๆ มีข้อมูลของจังหวัดนี้หรือไม่
+      if(d && d.a1559 != null) {
+        const val = parseFloat(d.a1559);
+        if(!isNaN(val)) {
+          const px = xs(i);
+          const py = ys(val);
+
+          // ถ้าเป็นจุดแรกให้เริ่มวาด (M) ถ้าเป็นจุดต่อไปให้ลากเส้น (L)
+          path += (isFirstPoint ? `M ${px},${py}` : ` L ${px},${py}`);
+          isFirstPoint = false;
+          
+          // วาดจุดวงกลม
+          svgContent += `<circle cx="${px}" cy="${py}" r="${isTarget ? 5 : 3}" fill="${strokeColor}"></circle>`;
+          
+          // เก็บพิกัดจุดสุดท้ายไว้ใส่ป้ายชื่อ
+          lastPoint = { x: px, y: py, val: val };
         }
       }
     });
+    
     const dash = isTH ? 'stroke-dasharray="6,4"' : '';
-    if(path) {
+    if(path !== '') {
+      // ประกอบเส้นลงในกราฟ
       svgContent += `<path d="${path}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${dash}></path>`;
+    }
+    
+    // ใส่ป้ายชื่อจังหวัดที่จุดสุดท้าย
+    if (lastPoint) {
+       svgContent += `<text x="${lastPoint.x + 12}" y="${lastPoint.y + 4}" fill="${strokeColor}" font-weight="${isTarget ? 'bold' : 'normal'}" font-size="12">${prov}</text>`;
     }
   });
 
