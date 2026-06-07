@@ -188,3 +188,223 @@ Papa.parse("ThailandEdu.csv", {
 
     document.getElementById('loadingStatus').style.display = 'none';
     document.getElementById('filterBar').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'grid';
+    
+    initFilters();
+    initMap();
+    updateDashboard();
+  },
+  error: function(err) {
+    document.getElementById('loadingStatus').innerText = "เกิดข้อผิดพลาดในการโหลดไฟล์ CSV";
+  }
+});
+
+// 2. จัดการตัวกรอง (Dropdown)
+function initFilters() {
+  const years = [...new Set(DATA.map(d => d.y))].sort((a,b) => b - a);
+  const provs = [...new Set(DATA.map(d => d.pt))].filter(p => p !== 'ประเทศไทย').sort();
+
+  const ySel = document.getElementById('yearSel');
+  ySel.innerHTML = `<option value="">ปีล่าสุด (${years[0]})</option>` + 
+                   years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+  const pSel = document.getElementById('provSel');
+  pSel.innerHTML = provs.map(p => `<option value="${p}" ${p===activeProv?'selected':''}>${p}</option>`).join('');
+
+  // ผูก Event เมื่อเปลี่ยนค่า
+  document.getElementById('yearSel').addEventListener('change', (e) => { activeYear = e.target.value; updateDashboard(); });
+  document.getElementById('provSel').addEventListener('change', (e) => { activeProv = e.target.value; updateDashboard(); });
+  document.getElementById('ageSel').addEventListener('change', (e) => { activeAge = e.target.value; updateDashboard(); });
+}
+
+// 3. ฟังก์ชันอัปเดตกราฟทั้งหมด
+function updateDashboard() {
+  renderRanking();
+  renderTrend();
+  if (geoJsonData) updateMapLayer();
+}
+
+// 4. วาดกราฟแท่งจัดอันดับ
+function renderRanking() {
+  const targetYear = activeYear ? parseInt(activeYear) : Math.max(...DATA.map(d => d.y));
+  const yearData = DATA.filter(d => d.y === targetYear && d.pt !== 'ประเทศไทย' && d[activeAge] != null);
+  
+  const sorted = yearData.sort((a,b) => parseFloat(b[activeAge]) - parseFloat(a[activeAge])).slice(0, 10);
+  
+  if (!sorted.some(d => d.pt === activeProv)) {
+    const targetData = yearData.find(d => d.pt === activeProv);
+    if(targetData) sorted.push(targetData);
+  }
+
+  const maxV = sorted.length ? parseFloat(sorted[0][activeAge]) : 1;
+  document.getElementById('rankBars').innerHTML = sorted.map((d, i) => {
+    const isTarget = d.pt === activeProv;
+    return `
+    <div class="bar-item">
+      <div class="bar-meta">
+        <span class="${isTarget ? 'text-highlight' : ''}">${i+1}. ${d.pt}</span>
+        <span style="font-family:'IBM Plex Mono'; font-weight:600;">${d[activeAge]} ปี</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill ${isTarget ? 'highlight' : ''}" style="width:${(d[activeAge]/maxV*100)}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+  
+  document.getElementById('rankTag').innerText = `ปี ${targetYear} | ${AGE_LABELS[activeAge]}`;
+}
+
+// 5. วาดกราฟเส้น
+function renderTrend() {
+  const svg = document.getElementById('trendSvg');
+  svg.setAttribute('viewBox', '0 0 800 240'); 
+
+  const YEARS = [...new Set(DATA.map(d => d.y))].sort((a,b) => a - b);
+  const plotProvinces = [activeProv, 'กรุงเทพมหานคร', 'ประเทศไทย']; 
+  
+  let svgContent = '';
+  const W = 800, H = 240, PT = 20, PB = 40, PL = 50, PR = 80;
+  
+  const allVals = DATA.filter(d => plotProvinces.includes(d.pt) && d[activeAge] != null)
+                      .map(d => parseFloat(d[activeAge]))
+                      .filter(v => !isNaN(v));
+
+  const minV = allVals.length ? Math.floor(Math.min(...allVals)) - 0.5 : 5;
+  const maxV = allVals.length ? Math.ceil(Math.max(...allVals)) + 0.5 : 12;
+  
+  const xs = i => PL + (i * ((W - PL - PR) / Math.max(1, YEARS.length - 1)));
+  const ys = v => PT + ((maxV - v) / (maxV - minV) * (H - PT - PB));
+
+  YEARS.forEach((y, i) => {
+    svgContent += `<text x="${xs(i)}" y="${H - 15}" text-anchor="middle" fill="#64748b" font-family="IBM Plex Mono" font-size="12">${y}</text>`;
+  });
+
+  plotProvinces.forEach((prov, index) => {
+    const isTarget = prov === activeProv;
+    const isTH = prov === 'ประเทศไทย';
+    const strokeColor = isTarget ? '#2563eb' : (isTH ? '#1e3a8a' : '#93c5fd');
+    const strokeWidth = isTarget ? 4 : 2;
+    
+    let path = '';
+    let isFirstPoint = true; 
+    let lastPoint = null;
+
+    YEARS.forEach((y, i) => {
+      const d = DATA.find(item => item.pt === prov && item.y === y);
+      if(d && d[activeAge] != null) {
+        const val = parseFloat(d[activeAge]);
+        if(!isNaN(val)) {
+          const px = xs(i); const py = ys(val);
+          path += (isFirstPoint ? `M ${px},${py}` : ` L ${px},${py}`);
+          isFirstPoint = false;
+          svgContent += `<circle cx="${px}" cy="${py}" r="${isTarget ? 5 : 3}" fill="${strokeColor}"></circle>`;
+          lastPoint = { x: px, y: py, val: val };
+        }
+      }
+    });
+    
+    const dash = isTH ? 'stroke-dasharray="6,4"' : '';
+    if(path !== '') {
+      svgContent += `<path d="${path}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${dash}></path>`;
+    }
+    if (lastPoint) {
+       // ขยับแกน Y ของ Label ไม่ให้ซ้อนกัน
+       let labelY = lastPoint.y + 4;
+       if (index > 0) labelY += (index * 2); 
+       svgContent += `<text x="${lastPoint.x + 12}" y="${labelY}" fill="${strokeColor}" font-weight="${isTarget ? 'bold' : 'normal'}" font-size="12">${prov}</text>`;
+    }
+  });
+
+  svg.innerHTML = svgContent;
+}
+
+// 6. ตั้งค่าแผนที่ครั้งแรก
+function initMap() {
+  map = L.map('map').setView([13.736717, 100.523186], 5);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap', maxZoom: 20
+  }).addTo(map);
+
+  fetch('https://raw.githubusercontent.com/chingchai/OpenGISData-Thailand/master/provinces.geojson')
+    .then(r => r.json())
+    .then(data => {
+      geoJsonData = data;
+      updateMapLayer();
+    });
+}
+
+// 7. อัปเดตสีและไฮไลต์บนแผนที่
+function updateMapLayer() {
+  if(geoLayer) map.removeLayer(geoLayer);
+
+  const targetYear = activeYear ? parseInt(activeYear) : Math.max(...DATA.map(d => d.y));
+  const yearData = DATA.filter(d => d.y === targetYear);
+  document.getElementById('mapTag').innerText = `ปี ${targetYear} | ${AGE_LABELS[activeAge]}`;
+
+  // หาสเกลสีแบบอัตโนมัติ ตามกลุ่มอายุ
+  const vals = yearData.map(d => parseFloat(d[activeAge])).filter(v => !isNaN(v));
+  const maxV = vals.length ? Math.max(...vals) : 12;
+  const minV = vals.length ? Math.min(...vals) : 4;
+  const range = maxV - minV;
+
+  function getDynamicColor(d) {
+    if(!d) return '#f1f5f9';
+    const pct = (d - minV) / range;
+    if(pct > 0.8) return '#1e3a8a';
+    if(pct > 0.6) return '#2563eb';
+    if(pct > 0.4) return '#60a5fa';
+    if(pct > 0.2) return '#93c5fd';
+    return '#dbeafe';
+  }
+
+  geoLayer = L.geoJson(geoJsonData, {
+    style: function (feature) {
+      const provName = feature.properties.pro_th; 
+      const provData = yearData.find(d => d.pt === provName);
+      const val = provData && provData[activeAge] ? parseFloat(provData[activeAge]) : 0;
+      const isTarget = provName === activeProv; // เช็กว่าเป็นจังหวัดเป้าหมายหรือไม่
+
+      return {
+        fillColor: getDynamicColor(val),
+        weight: isTarget ? 3 : 1,             // ถ้าเป็นจังหวัดที่เลือก ให้เส้นขอบหนา
+        color: isTarget ? '#ea580c' : 'white', // สีขอบสีส้ม ถ้าถูกเลือก
+        fillOpacity: 0.85
+      };
+    },
+    onEachFeature: function (feature, layer) {
+      const provName = feature.properties.pro_th;
+      const provData = yearData.find(d => d.pt === provName);
+      const val = provData && provData[activeAge] ? provData[activeAge] + " ปี" : "ไม่มีข้อมูล";
+      
+      // ตั้งค่า Popup
+      layer.bindPopup(`<div style="text-align:center; font-family:'Sarabun'">
+        <b>${provName}</b><br>
+        <span style="color:#2563eb; font-weight:bold;">${val}</span><br>
+        <small style="color:#64748b">(คลิกเพื่อเปรียบเทียบ)</small>
+      </div>`);
+
+      // ทำให้กดที่แผนที่แล้วค่า Dropdown/กราฟเปลี่ยนตาม
+      layer.on('click', function() {
+        document.getElementById('provSel').value = provName;
+        activeProv = provName;
+        updateDashboard();
+      });
+    }
+  }).addTo(map);
+}
+
+function exportDashboard() {
+  const target = document.getElementById('dashboardArea');
+  const btn = document.querySelector('.export-btn');
+  btn.style.display = 'none'; 
+  html2canvas(target, { backgroundColor: '#f8fafc', scale: 2, useCORS: true }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `Education_Index_${activeProv}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    btn.style.display = 'flex'; 
+  });
+}
+</script>
+</body>
+</html>
