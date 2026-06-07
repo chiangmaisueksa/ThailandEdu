@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ดัชนีการศึกษา · ประเทศไทย</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+/* คุมโทน สีน้ำเงิน ฟ้า ขาว */
+:root {
+  --bg: #f8fafc;        /* ขาวอมฟ้าอ่อนๆ สำหรับพื้นหลัง */
+  --white: #ffffff;
+  --border: #e2e8f0;
+  
+  --blue-dark: #1e3a8a; /* น้ำเงินเข้ม (Text หลักและหัวข้อ) */
+  --blue-main: #2563eb; /* สีน้ำเงิน/ฟ้าหลัก (ปุ่ม, ไฮไลต์) */
+  --blue-light: #dbeafe; /* ฟ้าอ่อน (พื้นหลังการ์ดบางส่วน, แถบ) */
+  --blue-pale: #eff6ff; /* ฟ้าจางมาก */
+  
+  --muted: #64748b;
+  --shadow: 0 4px 15px rgba(37, 99, 235, 0.05);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--blue-dark); min-height:100vh; }
+
+.wrap { max-width:1440px; margin:0 auto; padding:24px; }
+
+/* ── Header ── */
+.header { 
+  display:flex; justify-content:space-between; align-items:flex-end; 
+  padding-bottom:20px; border-bottom:2px solid var(--blue-light); margin-bottom:24px; 
+}
+h1 { font-size:32px; font-weight:700; color:var(--blue-dark); }
+h1 em { font-style:normal; color:var(--blue-main); }
+.export-btn {
+  background:var(--blue-main); color:var(--white); border:none; padding:10px 20px;
+  border-radius:8px; font-family:'Sarabun'; font-weight:600; cursor:pointer;
+  transition:0.2s; display:flex; align-items:center; gap:8px; box-shadow:var(--shadow);
+}
+.export-btn:hover { background:#1d4ed8; transform:translateY(-2px); }
+
+/* ── Layout ── */
+.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+.left-col, .right-col { display:flex; flex-direction:column; gap:24px; }
+@media(max-width:1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+/* ── Card ── */
+.card { 
+  background:var(--white); border:1px solid var(--border); 
+  border-radius:12px; padding:20px; box-shadow:var(--shadow); 
+}
+.card
