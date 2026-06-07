@@ -13,15 +13,14 @@
 <style>
 /* คุมโทน สีน้ำเงิน ฟ้า ขาว */
 :root {
-  --bg: #f8fafc;        /* ขาวอมฟ้าอ่อนๆ สำหรับพื้นหลัง */
+  --bg: #f8fafc;
   --white: #ffffff;
   --border: #e2e8f0;
-  
-  --blue-dark: #1e3a8a; /* น้ำเงินเข้ม (Text หลักและหัวข้อ) */
-  --blue-main: #2563eb; /* สีน้ำเงิน/ฟ้าหลัก (ปุ่ม, ไฮไลต์) */
-  --blue-light: #dbeafe; /* ฟ้าอ่อน (พื้นหลังการ์ดบางส่วน, แถบ) */
-  --blue-pale: #eff6ff; /* ฟ้าจางมาก */
-  
+  --blue-dark: #1e3a8a;
+  --blue-main: #2563eb;
+  --blue-light: #dbeafe;
+  --blue-pale: #eff6ff;
+  --highlight: #ea580c; /* สีส้มสำหรับไฮไลต์เปรียบเทียบ */
   --muted: #64748b;
   --shadow: 0 4px 15px rgba(37, 99, 235, 0.05);
 }
@@ -34,7 +33,7 @@ body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--blue-
 /* ── Header ── */
 .header { 
   display:flex; justify-content:space-between; align-items:flex-end; 
-  padding-bottom:20px; border-bottom:2px solid var(--blue-light); margin-bottom:24px; 
+  padding-bottom:20px; border-bottom:2px solid var(--blue-light); margin-bottom:20px; 
 }
 h1 { font-size:32px; font-weight:700; color:var(--blue-dark); }
 h1 em { font-style:normal; color:var(--blue-main); }
@@ -44,6 +43,21 @@ h1 em { font-style:normal; color:var(--blue-main); }
   transition:0.2s; display:flex; align-items:center; gap:8px; box-shadow:var(--shadow);
 }
 .export-btn:hover { background:#1d4ed8; transform:translateY(-2px); }
+
+/* ── Filter Bar ── */
+.filter-bar {
+  display: flex; gap: 16px; flex-wrap: wrap; background: var(--white);
+  padding: 16px 20px; border-radius: 12px; box-shadow: var(--shadow);
+  border: 1px solid var(--border); margin-bottom: 24px; position: relative; z-index: 10;
+}
+.filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+.filter-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.filter-group select {
+  padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+  font-family: 'Sarabun'; font-size: 14px; color: var(--blue-dark);
+  outline: none; background: var(--bg); cursor: pointer;
+}
+.filter-group select:focus { border-color: var(--blue-main); }
 
 /* ── Layout ── */
 .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
@@ -68,7 +82,7 @@ h1 em { font-style:normal; color:var(--blue-main); }
 .bar-item { margin-bottom:12px; }
 .bar-meta { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; }
 .bar-track { height:8px; background:var(--blue-pale); border-radius:4px; overflow:hidden; }
-.bar-fill { height:100%; border-radius:4px; background:var(--blue-light); }
+.bar-fill { height:100%; border-radius:4px; background:var(--blue-light); transition: 0.5s; }
 .bar-fill.highlight { background:var(--blue-main); }
 .text-highlight { font-weight:700; color:var(--blue-main); }
 
@@ -82,12 +96,31 @@ svg { width:100%; height:auto; }
   <header class="header">
     <div>
       <h1>ดัชนีการศึกษา <em>รายจังหวัด</em></h1>
-      <p style="color:var(--muted); margin-top:4px;">ระดับการศึกษาประชากรวัยแรงงาน · ปีการศึกษาเฉลี่ย (พ.ศ. 2561–2568)</p>
+      <p style="color:var(--muted); margin-top:4px;">วิเคราะห์ปีการศึกษาเฉลี่ยและระดับการศึกษา (พ.ศ. 2561–2568)</p>
     </div>
-    <button class="export-btn" onclick="exportDashboard()">
-      📸 ดาวน์โหลดรายงาน
-    </button>
+    <button class="export-btn" onclick="exportDashboard()">📸 ดาวน์โหลดรายงาน</button>
   </header>
+
+  <div class="filter-bar" id="filterBar" style="display:none;">
+    <div class="filter-group">
+      <label>📅 ปี พ.ศ. (สำหรับแผนที่และจัดอันดับ)</label>
+      <select id="yearSel"></select>
+    </div>
+    <div class="filter-group">
+      <label>📍 จังหวัดที่ต้องการเปรียบเทียบ</label>
+      <select id="provSel"></select>
+    </div>
+    <div class="filter-group">
+      <label>👥 กลุ่มอายุเป้าหมาย</label>
+      <select id="ageSel">
+        <option value="a1559" selected>15-59 ปี (วัยแรงงาน)</option>
+        <option value="a1539">15-39 ปี (วัยรุ่นและวัยทำงานตอนต้น)</option>
+        <option value="a4059">40-59 ปี (วัยทำงานตอนปลาย)</option>
+        <option value="a15up">15 ปีขึ้นไป (ภาพรวม)</option>
+        <option value="s60">60 ปีขึ้นไป (ผู้สูงอายุ)</option>
+      </select>
+    </div>
+  </div>
 
   <div id="loadingStatus" class="loading">กำลังโหลดข้อมูลจาก ThailandEdu.csv...</div>
 
@@ -96,7 +129,7 @@ svg { width:100%; height:auto; }
       <div class="card">
         <div class="card-title">
           📍 การกระจายตัวปีการศึกษาเฉลี่ยรายพื้นที่ (Heatmap)
-          <span class="tag">ปีล่าสุด</span>
+          <span class="tag" id="mapTag">ปีล่าสุด</span>
         </div>
         <div id="map" style="width: 100%; height: 350px; border-radius: 8px; z-index: 1;"></div>
       </div>
@@ -109,7 +142,7 @@ svg { width:100%; height:auto; }
 
     <div class="right-col">
       <div class="card">
-        <div class="card-title">🏆 10 อันดับสูงสุด <span class="tag">15-59 ปี (ล่าสุด)</span></div>
+        <div class="card-title">🏆 10 อันดับสูงสุด <span class="tag" id="rankTag"></span></div>
         <div id="rankBars"></div>
       </div>
     </div>
@@ -118,221 +151,40 @@ svg { width:100%; height:auto; }
 
 <script>
 let DATA = [];
-const TARGET_PROVINCE = "เชียงใหม่"; // ไฮไลต์พื้นที่เป้าหมาย
+let geoJsonData = null;
+let map = null;
+let geoLayer = null;
 
-// โหลดข้อมูลจากไฟล์ CSV
+// สถานะการกรองเริ่มต้น
+let activeProv = "เชียงใหม่"; 
+let activeYear = ""; 
+let activeAge = "a1559";
+
+const AGE_LABELS = {
+  "a1539": "15-39 ปี",
+  "a1559": "15-59 ปี",
+  "a4059": "40-59 ปี",
+  "a15up": "15 ปีขึ้นไป",
+  "s60": "60 ปีขึ้นไป"
+};
+
+// 1. โหลดข้อมูล
 Papa.parse("ThailandEdu.csv", {
   download: true,
   header: true,
-  dynamicTyping: true, // แปลงตัวเลขเป็น Number อัตโนมัติ
+  dynamicTyping: true,
   complete: function(results) {
-    // จับคู่หัวตารางภาษาไทยให้เข้ากับโค้ด
     DATA = results.data.map(row => {
       return {
         pt: row["จังหวัดในภาษาไทย"],
-        pe: row["จังหวัดในภาษาอังกฤษ"],
         y: row["ปี"],
-        hi: row["ร้อยละ ร้อยละของระดับการศึกษาของประชากรวัยแรงงาน (15-59 ปี) อุดมศึกษา"],
-        us: row["ร้อยละ ร้อยละของระดับการศึกษาของประชากรวัยแรงงาน (15-59 ปี) มัธยมศึกษาตอนปลาย"],
-        ls: row["ร้อยละ ร้อยละของระดับการศึกษาของประชากรวัยแรงงาน (15-59 ปี) มัธยมศึกษาตอนต้น"],
-        pr: row["ร้อยละ ร้อยละของระดับการศึกษาของประชากรวัยแรงงาน (15-59 ปี) ประถมศึกษา"],
-        bp: row["ร้อยละ ร้อยละของระดับการศึกษาของประชากรวัยแรงงาน (15-59 ปี) ต่ำกว่าประถม"],
-        s60: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 60 ปีขึ้นไป (หน่วย: ปี)"],
         a1539: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15-39 ปี (หน่วย: ปี)"],
         a1559: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15-59 ปี (หน่วย: ปี)"],
         a4059: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 40-59 ปี (หน่วย: ปี)"],
-        a15up: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15 ปีขึ้นไป (หน่วย: ปี)"]
+        a15up: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15 ปีขึ้นไป (หน่วย: ปี)"],
+        s60: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 60 ปีขึ้นไป (หน่วย: ปี)"]
       };
-    }).filter(d => d.pt && d.y); // กรองบรรทัดที่ไม่มีจังหวัดหรือปีออก
+    }).filter(d => d.pt && d.y);
 
     document.getElementById('loadingStatus').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'grid';
-    
-    // เรียกใช้ฟังก์ชันทั้งหมดหลังจากดึงข้อมูลสำเร็จ
-    renderRanking();
-    renderTrend();
-    renderMap();
-  },
-  error: function(err) {
-    document.getElementById('loadingStatus').innerText = "เกิดข้อผิดพลาดในการโหลดไฟล์ข้อมูล (ตรวจสอบว่าไฟล์ ThailandEdu.csv อยู่ในโฟลเดอร์เดียวกัน)";
-    document.getElementById('loadingStatus').style.color = "red";
-  }
-});
-
-// ฟังก์ชันแคปหน้าจอ
-function exportDashboard() {
-  const target = document.getElementById('dashboardArea');
-  const btn = document.querySelector('.export-btn');
-  btn.style.display = 'none'; // ซ่อนปุ่มก่อนแคป
-  
-  html2canvas(target, { backgroundColor: '#f8fafc', scale: 2, useCORS: true }).then(canvas => {
-    const link = document.createElement('a');
-    link.download = 'CM-GNLC-Education_Index.png';
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    btn.style.display = 'flex'; // แสดงปุ่มกลับมา
-  });
-}
-
-// สร้างกราฟแท่งจัดอันดับ 10 อันดับแรก
-function renderRanking() {
-  const latestYear = Math.max(...DATA.map(d => d.y));
-  const currentYearData = DATA.filter(d => d.y === latestYear && d.pt !== 'ประเทศไทย' && d.a1559 != null);
-  
-  const sorted = currentYearData.sort((a,b) => b.a1559 - a.a1559).slice(0, 10);
-  
-  // แทรกจังหวัดเป้าหมายหากไม่อยู่ใน Top 10
-  if (!sorted.some(d => d.pt === TARGET_PROVINCE)) {
-    const targetData = currentYearData.find(d => d.pt === TARGET_PROVINCE);
-    if(targetData) sorted.push(targetData);
-  }
-
-  const maxV = sorted.length ? sorted[0].a1559 : 1;
-  document.getElementById('rankBars').innerHTML = sorted.map((d, i) => {
-    const isTarget = d.pt === TARGET_PROVINCE;
-    return `
-    <div class="bar-item">
-      <div class="bar-meta">
-        <span class="${isTarget ? 'text-highlight' : ''}">${i+1}. ${d.pt}</span>
-        <span style="font-family:'IBM Plex Mono'; font-weight:600; color:var(--blue-dark);">${d.a1559} ปี</span>
-      </div>
-      <div class="bar-track">
-        <div class="bar-fill ${isTarget ? 'highlight' : ''}" style="width:${(d.a1559/maxV*100)}%"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// สร้างกราฟเส้นแนวโน้ม
-function renderTrend() {
-  const svg = document.getElementById('trendSvg');
-  svg.setAttribute('viewBox', '0 0 800 240'); // ขยาย ViewBox อัตโนมัติ
-
-  const YEARS = [...new Set(DATA.map(d => d.y))].filter(y => y != null).sort((a,b) => a - b);
-  if(YEARS.length === 0) return;
-
-  const plotProvinces = [TARGET_PROVINCE, 'กรุงเทพมหานคร', 'ประเทศไทย']; 
-  
-  let svgContent = '';
-  const W = 800, H = 240, PT = 20, PB = 40, PL = 50, PR = 80;
-  
-  // หาค่า Min/Max สำหรับแกน Y
-  const allVals = DATA
-    .filter(d => plotProvinces.includes(d.pt) && d.a1559 != null)
-    .map(d => parseFloat(d.a1559))
-    .filter(v => !isNaN(v));
-
-  const minV = allVals.length ? Math.floor(Math.min(...allVals)) - 0.5 : 8;
-  const maxV = allVals.length ? Math.ceil(Math.max(...allVals)) + 0.5 : 12;
-  
-  const xs = i => PL + (i * ((W - PL - PR) / Math.max(1, YEARS.length - 1)));
-  const ys = v => PT + ((maxV - v) / (maxV - minV) * (H - PT - PB));
-
-  // แถบแกน X (ปี พ.ศ.)
-  YEARS.forEach((y, i) => {
-    svgContent += `<text x="${xs(i)}" y="${H - 15}" text-anchor="middle" fill="#64748b" font-family="IBM Plex Mono" font-size="12">${y}</text>`;
-  });
-
-  // วาดเส้นกราฟ
-  plotProvinces.forEach(prov => {
-    const isTarget = prov === TARGET_PROVINCE;
-    const isTH = prov === 'ประเทศไทย';
-    const strokeColor = isTarget ? '#2563eb' : (isTH ? '#1e3a8a' : '#93c5fd');
-    const strokeWidth = isTarget ? 4 : 2;
-    
-    let path = '';
-    let isFirstPoint = true; 
-    let lastPoint = null;
-
-    YEARS.forEach((y, i) => {
-      const d = DATA.find(item => item.pt === prov && item.y === y);
-      
-      if(d && d.a1559 != null) {
-        const val = parseFloat(d.a1559);
-        if(!isNaN(val)) {
-          const px = xs(i);
-          const py = ys(val);
-
-          path += (isFirstPoint ? `M ${px},${py}` : ` L ${px},${py}`);
-          isFirstPoint = false;
-          
-          svgContent += `<circle cx="${px}" cy="${py}" r="${isTarget ? 5 : 3}" fill="${strokeColor}"></circle>`;
-          lastPoint = { x: px, y: py, val: val };
-        }
-      }
-    });
-    
-    const dash = isTH ? 'stroke-dasharray="6,4"' : '';
-    if(path !== '') {
-      svgContent += `<path d="${path}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${dash}></path>`;
-    }
-    
-    if (lastPoint) {
-       svgContent += `<text x="${lastPoint.x + 12}" y="${lastPoint.y + 4}" fill="${strokeColor}" font-weight="${isTarget ? 'bold' : 'normal'}" font-size="12">${prov}</text>`;
-    }
-  });
-
-  svg.innerHTML = svgContent;
-}
-
-// สร้างแผนที่ Heatmap (Choropleth Map)
-function renderMap() {
-  const map = L.map('map').setView([13.736717, 100.523186], 5); // ศูนย์กลางประเทศไทย
-
-  // Base Map โทนสีสว่าง
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 20
-  }).addTo(map);
-
-  // กำหนดเฉดสีตามช่วงคะแนน
-  function getColor(d) {
-    return d >= 11.0 ? '#1e3a8a' :  
-           d >= 10.5 ? '#2563eb' :  
-           d >= 10.0 ? '#60a5fa' :  
-           d >= 9.0  ? '#93c5fd' :  
-           d > 0     ? '#dbeafe' :  
-                       '#f1f5f9';   
-  }
-
-  const latestYear = Math.max(...DATA.map(d => d.y));
-  const currentYearData = DATA.filter(d => d.y === latestYear);
-
-  // โหลดพิกัด GeoJSON จาก GitHub ของ Open Data ไทย
-  fetch('https://raw.githubusercontent.com/chingchai/OpenGISData-Thailand/master/provinces.geojson')
-    .then(response => response.json())
-    .then(geojsonData => {
-      
-      L.geoJson(geojsonData, {
-        style: function (feature) {
-          const provName = feature.properties.pro_th; 
-          const provData = currentYearData.find(d => d.pt === provName);
-          const val = provData && provData.a1559 ? parseFloat(provData.a1559) : 0;
-
-          return {
-            fillColor: getColor(val),
-            weight: 1,
-            opacity: 1,
-            color: 'white',
-            fillOpacity: 0.85
-          };
-        },
-        onEachFeature: function (feature, layer) {
-          const provName = feature.properties.pro_th;
-          const provData = currentYearData.find(d => d.pt === provName);
-          const val = provData && provData.a1559 ? provData.a1559 + " ปี" : "ไม่มีข้อมูล";
-          
-          layer.bindPopup(`<div style="text-align:center; font-family:'Sarabun'">
-            <b>${provName}</b><br>
-            <span style="color:#2563eb; font-weight:bold;">${val}</span>
-          </div>`);
-        }
-      }).addTo(map);
-
-    })
-    .catch(err => console.error("โหลดแผนที่ GeoJSON ไม่สำเร็จ:", err));
-}
-</script>
-</body>
-</html>
+    document.getElementById('filterBar').style.display = 'flex';
