@@ -3,408 +3,554 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ดัชนีการศึกษา · ประเทศไทย</title>
+<title>ดัชนีการศึกษา · ประเทศไทย รายจังหวัด</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
-/* คุมโทน สีน้ำเงิน ฟ้า ขาว */
 :root {
-  --bg: #f8fafc;
+  --bg: #f0f7ff;
   --white: #ffffff;
-  --border: #e2e8f0;
-  --blue-dark: #1e3a8a;
-  --blue-main: #2563eb;
-  --blue-light: #dbeafe;
-  --blue-pale: #eff6ff;
-  --highlight: #ea580c; /* สีส้มสำหรับไฮไลต์เปรียบเทียบ */
+  --surface: #f8fbff;
+  --border: rgba(2,100,180,0.1);
+  --blue: #0369a1;
+  --blue-light: #e0f2fe;
+  --blue-mid: #bae6fd;
+  --accent: #0ea5e9;
+  --orange: #ea580c;
+  --green: #059669;
+  --red: #dc2626;
+  --text: #0f172a;
+  --text2: #334155;
   --muted: #64748b;
-  --shadow: 0 4px 15px rgba(37, 99, 235, 0.05);
+  --shadow: 0 1px 6px rgba(3,105,161,0.08), 0 2px 16px rgba(3,105,161,0.05);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* grid bg */
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image: linear-gradient(rgba(3,105,161,.05) 1px,transparent 1px),
+                    linear-gradient(90deg,rgba(3,105,161,.05) 1px,transparent 1px);
+  background-size: 48px 48px;
 }
 
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:'Sarabun',sans-serif; background:var(--bg); color:var(--blue-dark); min-height:100vh; }
-
-.wrap { max-width:1440px; margin:0 auto; padding:24px; }
+.wrap { position:relative; z-index:1; max-width:1400px; margin:0 auto; padding:0 20px 40px; }
 
 /* ── Header ── */
-.header { 
-  display:flex; justify-content:space-between; align-items:flex-end; 
-  padding-bottom:20px; border-bottom:2px solid var(--blue-light); margin-bottom:20px; 
-}
-h1 { font-size:32px; font-weight:700; color:var(--blue-dark); }
-h1 em { font-style:normal; color:var(--blue-main); }
-.export-btn {
-  background:var(--blue-main); color:var(--white); border:none; padding:10px 20px;
-  border-radius:8px; font-family:'Sarabun'; font-weight:600; cursor:pointer;
-  transition:0.2s; display:flex; align-items:center; gap:8px; box-shadow:var(--shadow);
-}
-.export-btn:hover { background:#1d4ed8; transform:translateY(-2px); }
+.header { padding:36px 0 24px; border-bottom:2px solid var(--blue-mid); }
+.header-inner { display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+.eyebrow { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:3px; text-transform:uppercase; color:var(--accent); margin-bottom:8px; }
+h1 { font-size:clamp(22px,4vw,40px); font-weight:700; line-height:1.1; }
+h1 em { font-style:normal; color:var(--blue); }
+.subtitle { margin-top:6px; font-size:14px; color:var(--muted); font-weight:300; }
+.header-meta { text-align:right; }
+.record-count { font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; color:var(--blue); }
+.record-label { font-size:11px; color:var(--muted); }
 
-/* ── Filter Bar ── */
+/* ── Filters ── */
 .filter-bar {
-  display: flex; gap: 16px; flex-wrap: wrap; background: var(--white);
-  padding: 16px 20px; border-radius: 12px; box-shadow: var(--shadow);
-  border: 1px solid var(--border); margin-bottom: 24px; position: relative; z-index: 10;
+  background:var(--white); border:1px solid var(--border); border-radius:14px;
+  padding:20px 24px; margin:24px 0; box-shadow:var(--shadow);
+  display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px;
 }
-.filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
-.filter-group label { font-size: 12px; font-weight: 600; color: var(--muted); }
-.filter-group select {
-  padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
-  font-family: 'Sarabun'; font-size: 14px; color: var(--blue-dark);
-  outline: none; background: var(--bg); cursor: pointer;
+.filter-group { display:flex; flex-direction:column; gap:6px; }
+.filter-label { font-size:11px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+.filter-select, .filter-search {
+  background:var(--bg); border:1.5px solid var(--border); border-radius:8px;
+  padding:9px 12px; font-family:'Sarabun',sans-serif; font-size:14px; color:var(--text);
+  outline:none; transition:.2s; cursor:pointer; width:100%;
 }
-.filter-group select:focus { border-color: var(--blue-main); }
+.filter-select:focus, .filter-search:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(14,165,233,.15); }
+.age-pills { display:flex; flex-wrap:wrap; gap:6px; }
+.age-pill {
+  padding:6px 12px; border-radius:20px; font-size:12px; font-weight:600;
+  border:1.5px solid var(--border); background:var(--bg); color:var(--muted);
+  cursor:pointer; transition:.2s;
+}
+.age-pill.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+.age-pill:hover:not(.active) { border-color:var(--accent); color:var(--accent); }
 
-/* ── Layout ── */
-.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
-.left-col, .right-col { display:flex; flex-direction:column; gap:24px; }
-@media(max-width:1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
+/* ── Summary KPI strip ── */
+.kpi-strip { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; margin-bottom:24px; }
+.kpi-card {
+  background:var(--white); border:1px solid var(--border); border-radius:12px;
+  padding:16px; box-shadow:var(--shadow); position:relative; overflow:hidden;
+}
+.kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.kpi-blue::before { background:var(--blue); }
+.kpi-green::before { background:var(--green); }
+.kpi-orange::before { background:var(--orange); }
+.kpi-accent::before { background:var(--accent); }
+.kpi-val { font-family:'IBM Plex Mono',monospace; font-size:26px; font-weight:600; color:var(--blue); line-height:1; }
+.kpi-label { font-size:11px; color:var(--muted); margin-top:4px; }
+.kpi-sub { font-size:11px; color:var(--text2); margin-top:2px; }
+
+/* ── Main layout ── */
+.main-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.full { grid-column:1/-1; }
+@media(max-width:768px) { .main-grid { grid-template-columns:1fr; } .full { grid-column:1; } }
 
 /* ── Card ── */
-.card { 
-  background:var(--white); border:1px solid var(--border); 
-  border-radius:12px; padding:20px; box-shadow:var(--shadow); 
+.card {
+  background:var(--white); border:1px solid var(--border); border-radius:14px;
+  padding:22px; box-shadow:var(--shadow);
 }
-.card-title { 
-  font-size:16px; font-weight:600; margin-bottom:16px; 
-  display:flex; justify-content:space-between; align-items:center; color:var(--blue-dark);
-}
-.tag { 
-  font-family:'IBM Plex Mono'; font-size:11px; background:var(--blue-pale); 
-  color:var(--blue-main); padding:4px 8px; border-radius:6px; border: 1px solid var(--blue-light);
-}
+.card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.card-title { font-size:13px; font-weight:700; color:var(--text2); letter-spacing:.3px; }
+.card-tag { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--muted); background:var(--bg); padding:3px 8px; border-radius:4px; border:1px solid var(--border); }
 
-/* ── Bars & Chart ── */
-.bar-item { margin-bottom:12px; }
-.bar-meta { display:flex; justify-content:space-between; font-size:14px; margin-bottom:6px; }
-.bar-track { height:8px; background:var(--blue-pale); border-radius:4px; overflow:hidden; }
-.bar-fill { height:100%; border-radius:4px; background:var(--blue-light); transition: 0.5s; }
-.bar-fill.highlight { background:var(--blue-main); }
-.text-highlight { font-weight:700; color:var(--blue-main); }
+/* ── Bar chart ── */
+.bar-list { display:flex; flex-direction:column; gap:10px; }
+.bar-item { }
+.bar-meta { display:flex; justify-content:space-between; margin-bottom:4px; }
+.bar-name { font-size:13px; color:var(--text2); }
+.bar-val { font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--blue); }
+.bar-track { height:8px; background:var(--blue-light); border-radius:4px; overflow:hidden; }
+.bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--accent),var(--blue)); transition:width .7s cubic-bezier(.34,1.56,.64,1); }
 
-svg { width:100%; height:auto; }
-.loading { text-align:center; padding:40px; color:var(--blue-main); font-weight:600; }
+/* ── Table (Heatmap Mod) ── */
+.tbl-wrap { overflow-x:auto; max-height:420px; overflow-y:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th {
+  position:sticky; top:0; background:var(--blue); color:#fff;
+  padding:10px 12px; text-align:left; font-weight:600; font-size:11px;
+  letter-spacing:.5px; white-space:nowrap; z-index:2;
+}
+thead th:first-child { border-radius:8px 0 0 0; }
+thead th:last-child { border-radius:0 8px 0 0; }
+tbody tr { border-bottom:1px solid var(--border); transition:.15s; }
+tbody tr:hover { background:transparent !important; } /* ปิด Hover เพื่อไม่ให้บังสี Heatmap */
+tbody td { padding:9px 12px; white-space:nowrap; border-bottom: 1px solid #fff; border-right: 1px solid #fff; }
+.td-num { font-family:'IBM Plex Mono',monospace; text-align:right; font-weight:500; }
+.td-province { font-weight:600; }
+.td-year { font-family:'IBM Plex Mono',monospace; color:var(--blue); font-size:12px; }
+.na { color:#ccc; }
+.rank-badge {
+  display:inline-block; width:22px; height:22px; border-radius:50%;
+  font-size:10px; font-weight:700; text-align:center; line-height:22px;
+  background:var(--blue-light); color:var(--blue);
+}
+.rank-badge.gold { background:#fef3c7; color:#d97706; }
+.rank-badge.silver { background:#f1f5f9; color:#64748b; }
+.rank-badge.bronze { background:#fef9f0; color:#92400e; }
+
+/* ── Trend SVG ── */
+.chart-wrap { overflow-x:auto; }
+.chart-inner { min-width:500px; }
+
+/* ── No data ── */
+.no-data { text-align:center; padding:40px 20px; color:var(--muted); font-size:14px; }
+.no-data-icon { font-size:32px; margin-bottom:8px; }
+
+/* ── Pill legend ── */
+.legend-row { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text2); }
+.legend-dot { width:10px; height:10px; border-radius:50%; }
+
+/* ── Footer ── */
+footer { border-top:1px solid var(--border); padding:20px 0; margin-top:10px; }
+.footer-txt { font-size:11px; color:var(--muted); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+.footer-badge { font-family:'IBM Plex Mono',monospace; border:1px solid var(--border); padding:3px 8px; border-radius:4px; }
+
+/* ── Animations ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+.card, .kpi-card { animation:fadeUp .4s forwards; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="wrap" id="dashboardArea">
-  <header class="header">
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
     <div>
-      <h1>ดัชนีการศึกษา <em>รายจังหวัด</em></h1>
-      <p style="color:var(--muted); margin-top:4px;">วิเคราะห์ปีการศึกษาเฉลี่ยและระดับการศึกษา (พ.ศ. 2561–2568)</p>
+      <div class="eyebrow">Education Index · Thailand All Provinces</div>
+      <h1>ดัชนีการศึกษา<br><em>รายจังหวัด</em> ทั่วประเทศไทย</h1>
+      <p class="subtitle">ระดับการศึกษาประชากรวัยแรงงาน (15–59 ปี) · ปีการศึกษาเฉลี่ย · 2561–2568</p>
     </div>
-    <button class="export-btn" onclick="exportDashboard()">📸 ดาวน์โหลดรายงาน</button>
-  </header>
-
-  <div class="filter-bar" id="filterBar" style="display:none;">
-    <div class="filter-group">
-      <label>📅 ปี พ.ศ. (สำหรับแผนที่และจัดอันดับ)</label>
-      <select id="yearSel"></select>
-    </div>
-    <div class="filter-group">
-      <label>📍 จังหวัดที่ต้องการเปรียบเทียบ</label>
-      <select id="provSel"></select>
-    </div>
-    <div class="filter-group">
-      <label>👥 กลุ่มอายุเป้าหมาย</label>
-      <select id="ageSel">
-        <option value="a1559" selected>15-59 ปี (วัยแรงงาน)</option>
-        <option value="a1539">15-39 ปี (วัยรุ่นและวัยทำงานตอนต้น)</option>
-        <option value="a4059">40-59 ปี (วัยทำงานตอนปลาย)</option>
-        <option value="a15up">15 ปีขึ้นไป (ภาพรวม)</option>
-        <option value="s60">60 ปีขึ้นไป (ผู้สูงอายุ)</option>
-      </select>
+    <div class="header-meta">
+      <div class="record-count" id="recordCount">624</div>
+      <div class="record-label">records ทั้งหมด</div>
     </div>
   </div>
+</header>
 
-  <div id="loadingStatus" class="loading">กำลังโหลดข้อมูลจาก ThailandEdu.csv...</div>
-
-  <div class="dashboard-grid" id="mainContent" style="display:none;">
-    <div class="left-col">
-      <div class="card">
-        <div class="card-title">
-          📍 การกระจายตัวปีการศึกษาเฉลี่ยรายพื้นที่ (Heatmap)
-          <span class="tag" id="mapTag">ปีล่าสุด</span>
-        </div>
-        <div id="map" style="width: 100%; height: 350px; border-radius: 8px; z-index: 1;"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">📈 แนวโน้มปีการศึกษาเฉลี่ย (เปรียบเทียบ)</div>
-        <svg id="trendSvg" viewBox="0 0 800 240"></svg>
-      </div>
-    </div>
-
-    <div class="right-col">
-      <div class="card">
-        <div class="card-title">🏆 10 อันดับสูงสุด <span class="tag" id="rankTag"></span></div>
-        <div id="rankBars"></div>
-      </div>
+<!-- FILTERS -->
+<div class="filter-bar">
+  <div class="filter-group">
+    <span class="filter-label">🔍 ค้นหาจังหวัด</span>
+    <input class="filter-search" id="searchInput" placeholder="พิมพ์ชื่อจังหวัด..." autocomplete="off">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">📅 ปี (พ.ศ.)</span>
+    <select class="filter-select" id="yearSel">
+      <option value="">— ทุกปี —</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">📍 จังหวัด</span>
+    <select class="filter-select" id="provSel">
+      <option value="">— ทุกจังหวัด —</option>
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">👥 กลุ่มอายุ (ปีการศึกษาเฉลี่ย)</span>
+    <div class="age-pills" id="agePills">
+      <button class="age-pill active" data-age="a1559">15–59 ปี</button>
+      <button class="age-pill" data-age="a1539">15–39 ปี</button>
+      <button class="age-pill" data-age="a4059">40–59 ปี</button>
+      <button class="age-pill" data-age="a15up">15 ปีขึ้นไป</button>
+      <button class="age-pill" data-age="s60">60 ปีขึ้นไป</button>
     </div>
   </div>
 </div>
 
+<!-- KPI STRIP -->
+<div class="kpi-strip" id="kpiStrip"></div>
+
+<!-- MAIN GRID -->
+<div class="main-grid">
+  <!-- Chart: Education level breakdown -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">สัดส่วนระดับการศึกษา (เฉลี่ยของข้อมูลที่กรอง)</span>
+      <span class="card-tag" id="eduTag">รวม</span>
+    </div>
+    <div class="bar-list" id="eduBars"></div>
+  </div>
+
+  <!-- Chart: Top/Bottom provinces -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title" id="rankTitle">จังหวัด Top 10 · ปีการศึกษาเฉลี่ย</span>
+      <span class="card-tag" id="rankTag">15–59 ปี</span>
+    </div>
+    <div class="bar-list" id="rankBars"></div>
+  </div>
+
+  <!-- Trend chart (full width) -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title" id="trendTitle">แนวโน้มปีการศึกษาเฉลี่ย ตามจังหวัดที่เลือก</span>
+      <span class="card-tag" id="trendTag">2563–2568</span>
+    </div>
+    <div class="legend-row" id="trendLegend"></div>
+    <div class="chart-wrap">
+      <div class="chart-inner">
+        <svg id="trendSvg" viewBox="0 0 900 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:240px"></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data table (full width) -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title">ตารางข้อมูลทั้งหมด (Heatmap)</span>
+      <span class="card-tag" id="tableCount">—</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>จังหวัด</th>
+            <th>Province</th>
+            <th>ปี</th>
+            <th>อุดมศึกษา %</th>
+            <th>ม.ปลาย %</th>
+            <th>ม.ต้น %</th>
+            <th>ประถม %</th>
+            <th>ต่ำกว่าประถม %</th>
+            <th>เฉลี่ย 15–39</th>
+            <th>เฉลี่ย 15–59</th>
+            <th>เฉลี่ย 40–59</th>
+            <th>เฉลี่ย 15+</th>
+            <th>เฉลี่ย 60+</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-txt">
+    <span>ที่มา: export_mys_all_years.csv · ระดับการศึกษาประชากร รายจังหวัด ประเทศไทย</span>
+    <span class="footer-badge">78 จังหวัด · 8 ปี · 624 records</span>
+  </div>
+</footer>
+</div>
+
 <script>
-let DATA = [];
-let geoJsonData = null;
-let map = null;
-let geoLayer = null;
+const DATA = [{"pt":"กรุงเทพมหานคร","pe":"Bangkok","y":2568,"hi":39.29,"us":23.24,"ls":17.02,"pr":17.52,"bp":2.93,"s60":8.75,"a1539":12.05,"a1559":11.52,"a4059":11.0,"a15up":10.98},{"pt":"สมุทรปราการ","pe":"Samut Prakan","y":2568,"hi":26.1,"us":27.3,"ls":20.97,"pr":24.43,"bp":1.21,"s60":7.1,"a1539":10.97,"a1559":10.6,"a4059":10.22,"a15up":9.94},{"pt":"นนทบุรี","pe":"Nonthaburi","y":2568,"hi":42.63,"us":22.49,"ls":23.59,"pr":10.9,"bp":0.39,"s60":9.27,"a1539":12.41,"a1559":12.09,"a4059":11.75,"a15up":11.56},{"pt":"ปทุมธานี","pe":"Pathum Thani","y":2568,"hi":33.76,"us":24.25,"ls":26.54,"pr":11.5,"bp":3.95,"s60":7.72,"a1539":11.44,"a1559":11.21,"a4059":10.92,"a15up":10.56},{"pt":"พระนครศรีอยุธยา","pe":"Phra Nakhon Si Ayutthaya","y":2568,"hi":31.22,"us":28.1,"ls":23.75,"pr":15.84,"bp":1.09,"s60":6.66,"a1539":11.7,"a1559":11.07,"a4059":10.39,"a15up":9.91},{"pt":"อ่างทอง","pe":"Ang Thong","y":2568,"hi":24.86,"us":29.94,"ls":25.78,"pr":18.55,"bp":0.87,"s60":6.55,"a1539":11.45,"a1559":10.72,"a4059":9.91,"a15up":9.62},{"pt":"ลพบุรี","pe":"Lopburi","y":2568,"hi":26.93,"us":24.79,"ls":25.48,"pr":21.6,"bp":1.2,"s60":6.4,"a1539":11.47,"a1559":10.59,"a4059":9.62,"a15up":9.5},{"pt":"สิงห์บุรี","pe":"Singburi","y":2568,"hi":34.33,"us":30.79,"ls":19.87,"pr":13.69,"bp":1.32,"s60":7.28,"a1539":12.17,"a1559":11.42,"a4059":10.61,"a15up":10.33},{"pt":"ชัยนาท","pe":"Chainat","y":2568,"hi":27.0,"us":26.03,"ls":21.71,"pr":23.8,"bp":1.47,"s60":5.8,"a1539":11.45,"a1559":10.45,"a4059":9.38,"a15up":9.22},{"pt":"สระบุรี","pe":"Saraburi","y":2568,"hi":27.68,"us":26.58,"ls":25.22,"pr":18.77,"bp":1.75,"s60":5.91,"a1539":11.08,"a1559":10.59,"a4059":10.03,"a15up":9.39},{"pt":"ชลบุรี","pe":"Chonburi","y":2568,"hi":27.15,"us":29.75,"ls":25.83,"pr":14.24,"bp":3.04,"s60":6.32,"a1539":11.13,"a1559":10.77,"a4059":10.36,"a15up":9.85},{"pt":"ระยอง","pe":"Rayong","y":2568,"hi":24.54,"us":31.75,"ls":21.41,"pr":20.39,"bp":1.9,"s60":6.08,"a1539":10.97,"a1559":10.53,"a4059":9.95,"a15up":9.76},{"pt":"จันทบุรี","pe":"Chanthaburi","y":2568,"hi":23.43,"us":22.44,"ls":25.0,"pr":27.08,"bp":2.05,"s60":5.6,"a1539":11.05,"a1559":10.18,"a4059":9.19,"a15up":9.29},{"pt":"ตราด","pe":"Trat","y":2568,"hi":23.38,"us":20.48,"ls":22.3,"pr":24.05,"bp":9.79,"s60":5.49,"a1539":10.34,"a1559":9.45,"a4059":8.47,"a15up":8.68},{"pt":"ฉะเชิงเทรา","pe":"Chachoengsao","y":2568,"hi":23.23,"us":33.89,"ls":26.35,"pr":15.65,"bp":0.87,"s60":6.03,"a1539":11.43,"a1559":10.78,"a4059":9.9,"a15up":9.96},{"pt":"ปราจีนบุรี","pe":"Prachinburi","y":2568,"hi":33.21,"us":31.74,"ls":21.01,"pr":14.01,"bp":0.04,"s60":6.38,"a1539":11.95,"a1559":11.37,"a4059":10.72,"a15up":10.39},{"pt":"นครนายก","pe":"Nakhon Nayok","y":2568,"hi":25.89,"us":27.92,"ls":22.87,"pr":20.3,"bp":3.01,"s60":6.8,"a1539":11.08,"a1559":10.47,"a4059":9.8,"a15up":9.76},{"pt":"สระแก้ว","pe":"Sa Kaeo","y":2568,"hi":18.2,"us":26.06,"ls":24.97,"pr":28.01,"bp":2.76,"s60":4.92,"a1539":10.8,"a1559":9.68,"a4059":8.45,"a15up":8.75},{"pt":"นครราชสีมา","pe":"Nakhon Ratchasima","y":2568,"hi":20.83,"us":27.67,"ls":23.32,"pr":25.73,"bp":2.45,"s60":5.65,"a1539":10.87,"a1559":9.99,"a4059":8.91,"a15up":8.73},{"pt":"บุรีรัมย์","pe":"Buriram","y":2568,"hi":19.05,"us":31.35,"ls":22.41,"pr":26.44,"bp":0.76,"s60":5.08,"a1539":11.46,"a1559":10.07,"a4059":8.4,"a15up":8.6},{"pt":"สุรินทร์","pe":"Surin","y":2568,"hi":22.15,"us":24.91,"ls":22.57,"pr":29.23,"bp":1.14,"s60":5.31,"a1539":11.05,"a1559":10.05,"a4059":8.83,"a15up":8.66},{"pt":"ศรีสะเกษ","pe":"Si Sa Ket","y":2568,"hi":17.71,"us":28.42,"ls":20.42,"pr":32.16,"bp":1.29,"s60":4.89,"a1539":11.04,"a1559":9.77,"a4059":8.23,"a15up":8.33},{"pt":"อุบลราชธานี","pe":"Ubon Ratchathani","y":2568,"hi":16.22,"us":26.73,"ls":20.99,"pr":34.81,"bp":1.25,"s60":5.43,"a1539":10.8,"a1559":9.44,"a4059":7.79,"a15up":8.26},{"pt":"ยโสธร","pe":"Yasothon","y":2568,"hi":14.77,"us":22.0,"ls":29.72,"pr":32.87,"bp":0.64,"s60":5.43,"a1539":10.62,"a1559":9.4,"a4059":7.93,"a15up":8.23},{"pt":"ชัยภูมิ","pe":"Chaiyaphum","y":2568,"hi":19.11,"us":26.85,"ls":22.67,"pr":30.34,"bp":1.03,"s60":5.24,"a1539":10.88,"a1559":9.78,"a4059":8.46,"a15up":8.45},{"pt":"อำนาจเจริญ","pe":"Amnat Charoen","y":2568,"hi":19.04,"us":29.22,"ls":20.2,"pr":29.35,"bp":2.18,"s60":5.31,"a1539":11.08,"a1559":9.8,"a4059":8.27,"a15up":8.48},{"pt":"บึงกาฬ","pe":"Bueng Kan","y":2568,"hi":10.94,"us":28.1,"ls":29.2,"pr":31.53,"bp":0.22,"s60":4.6,"a1539":10.83,"a1559":9.32,"a4059":7.49,"a15up":7.93},{"pt":"หนองบัวลำภู","pe":"Nong Bua Lamphu","y":2568,"hi":14.21,"us":24.36,"ls":25.87,"pr":34.08,"bp":1.47,"s60":4.95,"a1539":10.42,"a1559":9.33,"a4059":8.02,"a15up":8.05},{"pt":"ขอนแก่น","pe":"Khon Kaen","y":2568,"hi":16.81,"us":32.7,"ls":25.58,"pr":24.72,"bp":0.19,"s60":6.14,"a1539":11.21,"a1559":10.02,"a4059":8.58,"a15up":8.88},{"pt":"อุดรธานี","pe":"Udon Thani","y":2568,"hi":19.03,"us":21.24,"ls":26.53,"pr":33.13,"bp":0.07,"s60":5.44,"a1539":10.94,"a1559":9.58,"a4059":7.94,"a15up":8.37},{"pt":"เลย","pe":"Loei","y":2568,"hi":17.93,"us":27.08,"ls":26.39,"pr":27.55,"bp":1.05,"s60":5.59,"a1539":10.72,"a1559":9.9,"a4059":8.91,"a15up":8.64},{"pt":"หนองคาย","pe":"Nong Khai","y":2568,"hi":17.55,"us":23.74,"ls":25.4,"pr":31.89,"bp":1.42,"s60":5.21,"a1539":10.8,"a1559":9.57,"a4059":8.06,"a15up":8.3},{"pt":"มหาสารคาม","pe":"Maha Sarakham","y":2568,"hi":20.38,"us":30.6,"ls":22.34,"pr":25.86,"bp":0.82,"s60":5.51,"a1539":11.22,"a1559":10.21,"a4059":9.0,"a15up":8.83},{"pt":"ร้อยเอ็ด","pe":"Roi Et","y":2568,"hi":17.48,"us":27.55,"ls":23.36,"pr":30.74,"bp":0.87,"s60":5.54,"a1539":11.06,"a1559":9.79,"a4059":8.27,"a15up":8.54},{"pt":"กาฬสินธุ์","pe":"Kalasin","y":2568,"hi":13.31,"us":30.32,"ls":23.6,"pr":32.23,"bp":0.53,"s60":5.24,"a1539":10.77,"a1559":9.59,"a4059":8.16,"a15up":8.31},{"pt":"สกลนคร","pe":"Sakon Nakhon","y":2568,"hi":17.46,"us":23.73,"ls":25.3,"pr":32.99,"bp":0.52,"s60":5.52,"a1539":10.93,"a1559":9.58,"a4059":7.95,"a15up":8.39},{"pt":"นครพนม","pe":"Nakhon Phanom","y":2568,"hi":17.17,"us":26.84,"ls":24.26,"pr":31.36,"bp":0.37,"s60":5.44,"a1539":10.99,"a1559":9.77,"a4059":8.29,"a15up":8.5},{"pt":"มุกดาหาร","pe":"Mukdahan","y":2568,"hi":15.05,"us":26.91,"ls":27.82,"pr":29.19,"bp":1.03,"s60":5.23,"a1539":10.77,"a1559":9.63,"a4059":8.25,"a15up":8.33},{"pt":"เชียงใหม่","pe":"Chiang Mai","y":2568,"hi":28.49,"us":18.73,"ls":18.6,"pr":23.19,"bp":11.0,"s60":5.97,"a1539":10.57,"a1559":9.6,"a4059":8.38,"a15up":8.48},{"pt":"ลำพูน","pe":"Lamphun","y":2568,"hi":25.03,"us":33.89,"ls":18.03,"pr":18.19,"bp":4.86,"s60":5.48,"a1539":11.36,"a1559":10.47,"a4059":9.33,"a15up":8.94},{"pt":"ลำปาง","pe":"Lampang","y":2568,"hi":33.05,"us":25.23,"ls":19.3,"pr":20.93,"bp":1.5,"s60":5.59,"a1539":12.13,"a1559":10.91,"a4059":9.48,"a15up":9.19},{"pt":"อุตรดิตถ์","pe":"Uttaradit","y":2568,"hi":26.28,"us":27.35,"ls":21.63,"pr":22.95,"bp":1.79,"s60":5.87,"a1539":11.57,"a1559":10.43,"a4059":9.1,"a15up":8.95},{"pt":"แพร่","pe":"Phrae","y":2568,"hi":33.16,"us":26.97,"ls":20.51,"pr":19.06,"bp":0.29,"s60":6.22,"a1539":12.03,"a1559":11.17,"a4059":10.18,"a15up":9.57},{"pt":"น่าน","pe":"Nan","y":2568,"hi":22.96,"us":27.67,"ls":21.86,"pr":23.3,"bp":4.21,"s60":5.25,"a1539":11.16,"a1559":10.08,"a4059":8.82,"a15up":8.52},{"pt":"พะเยา","pe":"Phayao","y":2568,"hi":29.1,"us":29.87,"ls":18.78,"pr":20.89,"bp":1.35,"s60":4.97,"a1539":11.95,"a1559":10.87,"a4059":9.61,"a15up":8.96},{"pt":"เชียงราย","pe":"Chiang Rai","y":2568,"hi":15.36,"us":25.73,"ls":23.5,"pr":28.48,"bp":6.93,"s60":4.16,"a1539":10.67,"a1559":9.01,"a4059":7.04,"a15up":7.46},{"pt":"แม่ฮ่องสอน","pe":"Mae Hong Son","y":2568,"hi":12.46,"us":21.89,"ls":21.29,"pr":26.46,"bp":17.9,"s60":3.25,"a1539":9.86,"a1559":7.9,"a4059":5.59,"a15up":6.42},{"pt":"นครสวรรค์","pe":"Nakhon Sawan","y":2568,"hi":23.57,"us":26.96,"ls":23.47,"pr":24.14,"bp":1.85,"s60":5.88,"a1539":11.23,"a1559":10.29,"a4059":9.19,"a15up":8.87},{"pt":"อุทัยธานี","pe":"Uthai Thani","y":2568,"hi":19.28,"us":24.34,"ls":23.72,"pr":28.23,"bp":4.43,"s60":5.36,"a1539":10.69,"a1559":9.64,"a4059":8.41,"a15up":8.25},{"pt":"กำแพงเพชร","pe":"Kamphaeng Phet","y":2568,"hi":21.02,"us":22.73,"ls":19.25,"pr":35.97,"bp":1.03,"s60":4.88,"a1539":11.03,"a1559":9.61,"a4059":7.94,"a15up":8.08},{"pt":"ตาก","pe":"Tak","y":2568,"hi":15.36,"us":19.34,"ls":19.46,"pr":22.33,"bp":23.52,"s60":4.47,"a1539":8.7,"a1559":7.74,"a4059":6.57,"a15up":6.72},{"pt":"สุโขทัย","pe":"Sukhothai","y":2568,"hi":28.01,"us":23.75,"ls":20.38,"pr":27.04,"bp":0.82,"s60":5.39,"a1539":11.62,"a1559":10.5,"a4059":9.2,"a15up":8.84},{"pt":"พิษณุโลก","pe":"Phitsanulok","y":2568,"hi":27.02,"us":25.16,"ls":24.96,"pr":21.99,"bp":0.87,"s60":5.33,"a1539":11.75,"a1559":10.6,"a4059":9.26,"a15up":8.9},{"pt":"พิจิตร","pe":"Phichit","y":2568,"hi":23.93,"us":25.95,"ls":24.4,"pr":24.07,"bp":1.65,"s60":5.3,"a1539":11.2,"a1559":10.24,"a4059":9.1,"a15up":8.67},{"pt":"เพชรบูรณ์","pe":"Phetchabun","y":2568,"hi":23.14,"us":21.58,"ls":23.05,"pr":30.47,"bp":1.76,"s60":4.86,"a1539":11.09,"a1559":9.84,"a4059":8.36,"a15up":8.24},{"pt":"ราชบุรี","pe":"Ratchaburi","y":2568,"hi":21.63,"us":23.51,"ls":20.59,"pr":30.03,"bp":4.24,"s60":5.86,"a1539":10.32,"a1559":9.59,"a4059":8.71,"a15up":8.59},{"pt":"กาญจนบุรี","pe":"Kanchanaburi","y":2568,"hi":19.53,"us":22.18,"ls":21.79,"pr":27.71,"bp":8.78,"s60":4.5,"a1539":10.14,"a1559":9.18,"a4059":8.08,"a15up":7.88},{"pt":"สุพรรณบุรี","pe":"Suphanburi","y":2568,"hi":18.19,"us":26.48,"ls":28.51,"pr":26.53,"bp":0.28,"s60":5.23,"a1539":11.25,"a1559":10.01,"a4059":8.61,"a15up":8.66},{"pt":"นครปฐม","pe":"Nakhon Pathom","y":2568,"hi":25.05,"us":20.59,"ls":21.4,"pr":29.38,"bp":3.58,"s60":6.57,"a1539":10.36,"a1559":9.86,"a4059":9.28,"a15up":9.29},{"pt":"สมุทรสาคร","pe":"Samut Sakhon","y":2568,"hi":20.49,"us":24.49,"ls":29.38,"pr":21.67,"bp":3.98,"s60":6.35,"a1539":10.82,"a1559":9.96,"a4059":9.06,"a15up":9.24},{"pt":"สมุทรสงคราม","pe":"Samut Songkhram","y":2568,"hi":27.39,"us":24.19,"ls":19.26,"pr":26.91,"bp":2.26,"s60":7.04,"a1539":10.69,"a1559":10.26,"a4059":9.72,"a15up":9.41},{"pt":"เพชรบุรี","pe":"Phetchaburi","y":2568,"hi":25.26,"us":29.24,"ls":21.21,"pr":21.91,"bp":2.38,"s60":6.77,"a1539":10.97,"a1559":10.58,"a4059":10.12,"a15up":9.53},{"pt":"ประจวบคีรีขันธ์","pe":"Prachuap Khiri Khan","y":2568,"hi":23.33,"us":22.12,"ls":22.05,"pr":27.25,"bp":5.26,"s60":6.71,"a1539":10.15,"a1559":9.74,"a4059":9.23,"a15up":8.93},{"pt":"นครศรีธรรมราช","pe":"Nakhon Si Thammarat","y":2568,"hi":29.85,"us":24.38,"ls":21.81,"pr":22.38,"bp":1.58,"s60":6.22,"a1539":11.32,"a1559":10.64,"a4059":9.82,"a15up":9.64},{"pt":"กระบี่","pe":"Krabi","y":2568,"hi":21.88,"us":23.46,"ls":23.15,"pr":27.24,"bp":4.26,"s60":5.09,"a1539":10.61,"a1559":9.8,"a4059":8.75,"a15up":8.77},{"pt":"พังงา","pe":"Phang Nga","y":2568,"hi":21.75,"us":23.67,"ls":19.68,"pr":32.0,"bp":2.9,"s60":5.92,"a1539":10.46,"a1559":9.73,"a4059":8.76,"a15up":8.9},{"pt":"ภูเก็ต","pe":"Phuket","y":2568,"hi":29.01,"us":28.56,"ls":21.33,"pr":17.16,"bp":3.94,"s60":7.92,"a1539":10.93,"a1559":10.75,"a4059":10.51,"a15up":10.15},{"pt":"สุราษฎร์ธานี","pe":"Surat Thani","y":2568,"hi":25.23,"us":25.58,"ls":23.66,"pr":23.24,"bp":2.29,"s60":6.76,"a1539":10.9,"a1559":10.32,"a4059":9.53,"a15up":9.57},{"pt":"ระนอง","pe":"Ranong","y":2568,"hi":14.08,"us":19.4,"ls":23.54,"pr":41.35,"bp":1.64,"s60":5.82,"a1539":9.28,"a1559":8.93,"a4059":8.43,"a15up":8.3},{"pt":"ชุมพร","pe":"Chumphon","y":2568,"hi":23.51,"us":27.77,"ls":21.78,"pr":25.39,"bp":1.56,"s60":6.6,"a1539":11.07,"a1559":10.18,"a4059":8.91,"a15up":9.43},{"pt":"สงขลา","pe":"Songkhla","y":2568,"hi":31.55,"us":23.8,"ls":20.32,"pr":23.17,"bp":1.16,"s60":6.56,"a1539":11.4,"a1559":10.77,"a4059":9.96,"a15up":9.83},{"pt":"สตูล","pe":"Satun","y":2568,"hi":23.75,"us":29.03,"ls":17.95,"pr":28.58,"bp":0.69,"s60":5.89,"a1539":11.07,"a1559":10.33,"a4059":9.43,"a15up":9.31},{"pt":"ตรัง","pe":"Trang","y":2568,"hi":25.8,"us":23.93,"ls":20.4,"pr":27.76,"bp":2.12,"s60":5.92,"a1539":10.79,"a1559":10.16,"a4059":9.37,"a15up":9.2},{"pt":"พัทลุง","pe":"Phatthalung","y":2568,"hi":27.19,"us":30.72,"ls":20.75,"pr":20.28,"bp":1.07,"s60":6.4,"a1539":11.34,"a1559":10.82,"a4059":10.2,"a15up":9.8},{"pt":"ปัตตานี","pe":"Pattani","y":2568,"hi":20.9,"us":24.36,"ls":20.04,"pr":27.3,"bp":7.39,"s60":5.41,"a1539":10.53,"a1559":9.52,"a4059":8.3,"a15up":8.58},{"pt":"ยะลา","pe":"Yala","y":2568,"hi":18.14,"us":30.15,"ls":21.96,"pr":28.61,"bp":1.14,"s60":5.56,"a1539":10.94,"a1559":9.96,"a4059":8.77,"a15up":9.0},{"pt":"นราธิวาส","pe":"Narathiwat","y":2568,"hi":19.26,"us":22.17,"ls":16.97,"pr":37.42,"bp":4.17,"s60":4.26,"a1539":10.29,"a1559":9.31,"a4059":8.14,"a15up":8.15},{"pt":"ประเทศไทย","pe":"Thailand","y":2568,"hi":26.14,"us":25.62,"ls":22.1,"pr":23.56,"bp":2.58,"s60":6.13,"a1539":11.18,"a1559":10.39,"a4059":9.47,"a15up":9.33},{"pt":"กรุงเทพมหานคร","pe":"Bangkok","y":2567,"hi":41.25,"us":21.83,"ls":16.96,"pr":16.99,"bp":2.98,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สมุทรปราการ","pe":"Samut Prakan","y":2567,"hi":25.58,"us":27.19,"ls":23.76,"pr":23.04,"bp":0.43,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นนทบุรี","pe":"Nonthaburi","y":2567,"hi":35.75,"us":23.18,"ls":24.41,"pr":16.01,"bp":0.66,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ปทุมธานี","pe":"Pathum Thani","y":2567,"hi":29.77,"us":24.5,"ls":24.41,"pr":18.94,"bp":2.38,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"พระนครศรีอยุธยา","pe":"Phra Nakhon Si Ayutthaya","y":2567,"hi":31.9,"us":28.07,"ls":22.17,"pr":15.98,"bp":1.88,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"อ่างทอง","pe":"Ang Thong","y":2567,"hi":24.03,"us":31.37,"ls":23.66,"pr":19.65,"bp":1.29,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ลพบุรี","pe":"Lopburi","y":2567,"hi":27.49,"us":25.55,"ls":22.39,"pr":23.75,"bp":0.82,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สิงห์บุรี","pe":"Singburi","y":2567,"hi":32.69,"us":31.78,"ls":18.59,"pr":15.89,"bp":1.06,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ชัยนาท","pe":"Chainat","y":2567,"hi":26.71,"us":26.2,"ls":21.32,"pr":23.78,"bp":1.99,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สระบุรี","pe":"Saraburi","y":2567,"hi":26.09,"us":25.43,"ls":26.4,"pr":20.87,"bp":1.21,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ชลบุรี","pe":"Chonburi","y":2567,"hi":27.09,"us":24.83,"ls":24.09,"pr":20.97,"bp":3.01,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ระยอง","pe":"Rayong","y":2567,"hi":26.77,"us":30.25,"ls":20.08,"pr":20.42,"bp":2.49,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"จันทบุรี","pe":"Chanthaburi","y":2567,"hi":23.29,"us":22.56,"ls":21.62,"pr":25.02,"bp":7.5,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ตราด","pe":"Trat","y":2567,"hi":21.47,"us":20.88,"ls":20.11,"pr":32.74,"bp":4.81,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ฉะเชิงเทรา","pe":"Chachoengsao","y":2567,"hi":14.88,"us":28.06,"ls":36.66,"pr":19.5,"bp":0.91,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ปราจีนบุรี","pe":"Prachinburi","y":2567,"hi":25.94,"us":30.97,"ls":23.24,"pr":18.85,"bp":1.01,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นครนายก","pe":"Nakhon Nayok","y":2567,"hi":24.53,"us":28.47,"ls":23.6,"pr":20.93,"bp":2.47,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สระแก้ว","pe":"Sa Kaeo","y":2567,"hi":18.27,"us":22.92,"ls":23.57,"pr":31.37,"bp":3.87,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นครราชสีมา","pe":"Nakhon Ratchasima","y":2567,"hi":20.39,"us":26.01,"ls":24.83,"pr":27.67,"bp":1.1,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"บุรีรัมย์","pe":"Buriram","y":2567,"hi":19.56,"us":28.61,"ls":19.03,"pr":31.91,"bp":0.9,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สุรินทร์","pe":"Surin","y":2567,"hi":18.97,"us":27.87,"ls":21.7,"pr":30.19,"bp":1.26,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ศรีสะเกษ","pe":"Si Sa Ket","y":2567,"hi":14.81,"us":28.4,"ls":21.71,"pr":34.92,"bp":0.16,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"อุบลราชธานี","pe":"Ubon Ratchathani","y":2567,"hi":16.51,"us":22.77,"ls":24.55,"pr":34.84,"bp":1.33,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ยโสธร","pe":"Yasothon","y":2567,"hi":11.39,"us":22.06,"ls":29.18,"pr":36.64,"bp":0.74,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ชัยภูมิ","pe":"Chaiyaphum","y":2567,"hi":20.78,"us":25.84,"ls":22.57,"pr":29.53,"bp":1.28,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"อำนาจเจริญ","pe":"Amnat Charoen","y":2567,"hi":20.54,"us":24.46,"ls":20.95,"pr":33.68,"bp":0.37,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"บึงกาฬ","pe":"Bueng Kan","y":2567,"hi":11.37,"us":26.27,"ls":29.11,"pr":33.25,"bp":0.0,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"หนองบัวลำภู","pe":"Nong Bua Lamphu","y":2567,"hi":17.5,"us":24.5,"ls":22.98,"pr":33.83,"bp":1.18,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ขอนแก่น","pe":"Khon Kaen","y":2567,"hi":19.58,"us":28.92,"ls":25.51,"pr":25.8,"bp":0.19,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"อุดรธานี","pe":"Udon Thani","y":2567,"hi":17.83,"us":22.48,"ls":23.85,"pr":35.39,"bp":0.45,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เลย","pe":"Loei","y":2567,"hi":17.77,"us":28.58,"ls":22.42,"pr":29.36,"bp":1.87,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"หนองคาย","pe":"Nong Khai","y":2567,"hi":18.01,"us":22.27,"ls":24.79,"pr":33.23,"bp":1.69,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"มหาสารคาม","pe":"Maha Sarakham","y":2567,"hi":17.89,"us":31.13,"ls":20.2,"pr":30.19,"bp":0.58,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ร้อยเอ็ด","pe":"Roi Et","y":2567,"hi":19.75,"us":25.3,"ls":25.78,"pr":28.83,"bp":0.34,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"กาฬสินธุ์","pe":"Kalasin","y":2567,"hi":14.36,"us":30.48,"ls":20.09,"pr":34.9,"bp":0.17,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สกลนคร","pe":"Sakon Nakhon","y":2567,"hi":16.54,"us":22.35,"ls":27.51,"pr":33.06,"bp":0.54,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นครพนม","pe":"Nakhon Phanom","y":2567,"hi":15.87,"us":28.02,"ls":21.71,"pr":33.18,"bp":1.22,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"มุกดาหาร","pe":"Mukdahan","y":2567,"hi":15.21,"us":22.88,"ls":26.27,"pr":35.11,"bp":0.53,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เชียงใหม่","pe":"Chiang Mai","y":2567,"hi":28.67,"us":18.05,"ls":15.59,"pr":26.43,"bp":11.25,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ลำพูน","pe":"Lamphun","y":2567,"hi":24.88,"us":29.95,"ls":18.97,"pr":20.29,"bp":5.91,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ลำปาง","pe":"Lampang","y":2567,"hi":29.73,"us":25.41,"ls":19.69,"pr":22.73,"bp":2.44,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"อุตรดิตถ์","pe":"Uttaradit","y":2567,"hi":25.82,"us":28.44,"ls":20.72,"pr":23.76,"bp":1.26,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"แพร่","pe":"Phrae","y":2567,"hi":32.22,"us":27.98,"ls":18.42,"pr":20.76,"bp":0.62,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"น่าน","pe":"Nan","y":2567,"hi":19.82,"us":30.28,"ls":21.21,"pr":23.64,"bp":5.05,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"พะเยา","pe":"Phayao","y":2567,"hi":29.43,"us":26.57,"ls":18.5,"pr":23.96,"bp":1.54,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เชียงราย","pe":"Chiang Rai","y":2567,"hi":10.84,"us":24.87,"ls":21.79,"pr":33.73,"bp":8.77,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"แม่ฮ่องสอน","pe":"Mae Hong Son","y":2567,"hi":12.89,"us":21.24,"ls":20.35,"pr":25.65,"bp":19.88,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นครสวรรค์","pe":"Nakhon Sawan","y":2567,"hi":22.54,"us":24.35,"ls":21.97,"pr":25.54,"bp":5.59,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"อุทัยธานี","pe":"Uthai Thani","y":2567,"hi":20.42,"us":23.84,"ls":20.67,"pr":31.42,"bp":3.65,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"กำแพงเพชร","pe":"Kamphaeng Phet","y":2567,"hi":20.07,"us":21.5,"ls":21.4,"pr":35.74,"bp":1.29,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ตาก","pe":"Tak","y":2567,"hi":14.03,"us":16.83,"ls":20.04,"pr":27.63,"bp":21.47,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สุโขทัย","pe":"Sukhothai","y":2567,"hi":20.24,"us":22.45,"ls":23.87,"pr":32.11,"bp":1.33,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"พิษณุโลก","pe":"Phitsanulok","y":2567,"hi":23.59,"us":24.45,"ls":23.41,"pr":27.43,"bp":1.12,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"พิจิตร","pe":"Phichit","y":2567,"hi":22.43,"us":23.83,"ls":24.92,"pr":27.64,"bp":1.19,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เพชรบูรณ์","pe":"Phetchabun","y":2567,"hi":23.15,"us":21.53,"ls":21.65,"pr":31.69,"bp":1.98,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ราชบุรี","pe":"Ratchaburi","y":2567,"hi":22.33,"us":22.54,"ls":21.78,"pr":30.47,"bp":2.88,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"กาญจนบุรี","pe":"Kanchanaburi","y":2567,"hi":21.94,"us":21.35,"ls":21.8,"pr":29.15,"bp":5.76,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สุพรรณบุรี","pe":"Suphanburi","y":2567,"hi":20.12,"us":23.2,"ls":30.76,"pr":25.71,"bp":0.21,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นครปฐม","pe":"Nakhon Pathom","y":2567,"hi":28.87,"us":21.1,"ls":21.11,"pr":26.32,"bp":2.59,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สมุทรสาคร","pe":"Samut Sakhon","y":2567,"hi":18.09,"us":25.63,"ls":25.59,"pr":25.39,"bp":5.3,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สมุทรสงคราม","pe":"Samut Songkhram","y":2567,"hi":27.89,"us":23.69,"ls":18.88,"pr":26.9,"bp":2.65,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เพชรบุรี","pe":"Phetchaburi","y":2567,"hi":24.42,"us":29.02,"ls":21.65,"pr":22.5,"bp":2.4,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ประจวบคีรีขันธ์","pe":"Prachuap Khiri Khan","y":2567,"hi":22.44,"us":22.64,"ls":21.43,"pr":25.48,"bp":8.02,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นครศรีธรรมราช","pe":"Nakhon Si Thammarat","y":2567,"hi":27.82,"us":21.78,"ls":21.1,"pr":26.3,"bp":3.0,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"กระบี่","pe":"Krabi","y":2567,"hi":22.8,"us":23.99,"ls":23.26,"pr":26.32,"bp":3.62,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"พังงา","pe":"Phang Nga","y":2567,"hi":22.75,"us":20.95,"ls":20.93,"pr":30.62,"bp":4.75,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ภูเก็ต","pe":"Phuket","y":2567,"hi":29.41,"us":25.83,"ls":20.68,"pr":20.36,"bp":3.73,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สุราษฎร์ธานี","pe":"Surat Thani","y":2567,"hi":21.94,"us":25.99,"ls":24.79,"pr":23.52,"bp":3.77,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ระนอง","pe":"Ranong","y":2567,"hi":14.99,"us":21.13,"ls":21.23,"pr":40.22,"bp":2.42,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ชุมพร","pe":"Chumphon","y":2567,"hi":19.29,"us":25.97,"ls":21.78,"pr":28.59,"bp":4.38,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สงขลา","pe":"Songkhla","y":2567,"hi":34.95,"us":23.49,"ls":18.39,"pr":22.41,"bp":0.76,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"สตูล","pe":"Satun","y":2567,"hi":21.62,"us":25.69,"ls":19.69,"pr":32.15,"bp":0.85,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ตรัง","pe":"Trang","y":2567,"hi":22.25,"us":26.12,"ls":17.82,"pr":30.54,"bp":3.28,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"พัทลุง","pe":"Phatthalung","y":2567,"hi":25.28,"us":28.5,"ls":22.58,"pr":22.03,"bp":1.61,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ปัตตานี","pe":"Pattani","y":2567,"hi":19.98,"us":23.27,"ls":17.91,"pr":31.69,"bp":7.14,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ยะลา","pe":"Yala","y":2567,"hi":18.24,"us":32.71,"ls":22.47,"pr":25.64,"bp":0.94,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"นราธิวาส","pe":"Narathiwat","y":2567,"hi":16.39,"us":23.13,"ls":18.16,"pr":36.69,"bp":5.63,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ประเทศไทย","pe":"Thailand","y":2567,"hi":25.58,"us":24.6,"ls":21.93,"pr":25.21,"bp":2.68,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เชียงใหม่","pe":"Chiang Mai","y":2566,"hi":30.32,"us":19.9,"ls":12.99,"pr":24.16,"bp":12.64,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ประเทศไทย","pe":"Thailand","y":2566,"hi":25.72,"us":24.69,"ls":21.43,"pr":25.38,"bp":2.78,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เชียงใหม่","pe":"Chiang Mai","y":2565,"hi":33.82,"us":19.2,"ls":13.48,"pr":22.19,"bp":11.31,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ประเทศไทย","pe":"Thailand","y":2565,"hi":26.47,"us":24.16,"ls":20.39,"pr":26.11,"bp":2.87,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"เชียงใหม่","pe":"Chiang Mai","y":2564,"hi":29.1,"us":21.87,"ls":15.29,"pr":23.16,"bp":10.58,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ประเทศไทย","pe":"Thailand","y":2564,"hi":24.67,"us":22.92,"ls":20.59,"pr":28.84,"bp":2.98,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"กรุงเทพมหานคร","pe":"Bangkok","y":2563,"hi":43.19,"us":20.33,"ls":16.17,"pr":18.15,"bp":2.16,"s60":8.72,"a1539":11.16,"a1559":11.26,"a4059":11.26,"a15up":8.7},{"pt":"เชียงใหม่","pe":"Chiang Mai","y":2563,"hi":25.47,"us":18.5,"ls":18.38,"pr":25.57,"bp":12.09,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null},{"pt":"ประเทศไทย","pe":"Thailand","y":2563,"hi":24.23,"us":22.16,"ls":20.48,"pr":30.21,"bp":2.92,"s60":null,"a1539":null,"a1559":null,"a4059":null,"a15up":null}];
 
-// สถานะการกรองเริ่มต้น
-let activeProv = "เชียงใหม่"; 
-let activeYear = ""; 
-let activeAge = "a1559";
+// --- State ---
+const AGE_LABELS = { a1539:'15–39 ปี', a1559:'15–59 ปี', a4059:'40–59 ปี', a15up:'15+ ปี', s60:'60+ ปี' };
+const COLORS = ['#0369a1','#0ea5e9','#38bdf8','#7dd3fc','#bae6fd','#ea580c','#f97316'];
+let activeAge = 'a1559';
+let yearFilter = '';
+let provFilter = '';
+let searchFilter = '';
 
-const AGE_LABELS = {
-  "a1539": "15-39 ปี",
-  "a1559": "15-59 ปี",
-  "a4059": "40-59 ปี",
-  "a15up": "15 ปีขึ้นไป",
-  "s60": "60 ปีขึ้นไป"
-};
-
-// 1. โหลดข้อมูล
-Papa.parse("ThailandEdu.csv", {
-  download: true,
-  header: true,
-  dynamicTyping: true,
-  complete: function(results) {
-    DATA = results.data.map(row => {
-      return {
-        pt: row["จังหวัดในภาษาไทย"],
-        y: row["ปี"],
-        a1539: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15-39 ปี (หน่วย: ปี)"],
-        a1559: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15-59 ปี (หน่วย: ปี)"],
-        a4059: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 40-59 ปี (หน่วย: ปี)"],
-        a15up: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 15 ปีขึ้นไป (หน่วย: ปี)"],
-        s60: row["ร้อยละ ปีการศึกษาเฉลี่ยของประชากร 60 ปีขึ้นไป (หน่วย: ปี)"]
-      };
-    }).filter(d => d.pt && d.y);
-
-    document.getElementById('loadingStatus').style.display = 'none';
-    document.getElementById('filterBar').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'grid';
-    
-    initFilters();
-    initMap();
-    updateDashboard();
-  },
-  error: function(err) {
-    document.getElementById('loadingStatus').innerText = "เกิดข้อผิดพลาดในการโหลดไฟล์ CSV";
-  }
-});
-
-// 2. จัดการตัวกรอง (Dropdown)
+// --- Init dropdowns ---
 function initFilters() {
-  const years = [...new Set(DATA.map(d => d.y))].sort((a,b) => b - a);
-  const provs = [...new Set(DATA.map(d => d.pt))].filter(p => p !== 'ประเทศไทย').sort();
+  const years = [...new Set(DATA.map(d=>d.y))].sort((a,b)=>b-a);
+  const provs = [...new Set(DATA.map(d=>d.pt))].filter(p=>p!=='ประเทศไทย').sort();
+  const yearSel = document.getElementById('yearSel');
+  const provSel = document.getElementById('provSel');
+  years.forEach(y=>{ const o=document.createElement('option'); o.value=y; o.textContent=`${y} BE (${y-543} CE)`; yearSel.appendChild(o); });
+  provs.forEach(p=>{ const o=document.createElement('option'); o.value=p; o.textContent=p; provSel.appendChild(o); });
 
-  const ySel = document.getElementById('yearSel');
-  ySel.innerHTML = `<option value="">ปีล่าสุด (${years[0]})</option>` + 
-                   years.map(y => `<option value="${y}">${y}</option>`).join('');
+  yearSel.onchange = e => { yearFilter=e.target.value; render(); };
+  provSel.onchange = e => { provFilter=e.target.value; render(); };
+  document.getElementById('searchInput').oninput = e => { searchFilter=e.target.value.toLowerCase(); render(); };
 
-  const pSel = document.getElementById('provSel');
-  pSel.innerHTML = provs.map(p => `<option value="${p}" ${p===activeProv?'selected':''}>${p}</option>`).join('');
-
-  // ผูก Event เมื่อเปลี่ยนค่า
-  document.getElementById('yearSel').addEventListener('change', (e) => { activeYear = e.target.value; updateDashboard(); });
-  document.getElementById('provSel').addEventListener('change', (e) => { activeProv = e.target.value; updateDashboard(); });
-  document.getElementById('ageSel').addEventListener('change', (e) => { activeAge = e.target.value; updateDashboard(); });
+  document.querySelectorAll('.age-pill').forEach(btn=>{
+    btn.onclick = () => {
+      document.querySelectorAll('.age-pill').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      activeAge = btn.dataset.age;
+      render();
+    };
+  });
 }
 
-// 3. ฟังก์ชันอัปเดตกราฟทั้งหมด
-function updateDashboard() {
-  renderRanking();
-  renderTrend();
-  if (geoJsonData) updateMapLayer();
+// --- Filter data ---
+function getFiltered() {
+  return DATA.filter(d => {
+    if (yearFilter && d.y != yearFilter) return false;
+    if (provFilter && d.pt !== provFilter) return false;
+    if (searchFilter && !d.pt.toLowerCase().includes(searchFilter) && !d.pe.toLowerCase().includes(searchFilter)) return false;
+    return true;
+  });
 }
 
-// 4. วาดกราฟแท่งจัดอันดับ
-function renderRanking() {
-  const targetYear = activeYear ? parseInt(activeYear) : Math.max(...DATA.map(d => d.y));
-  const yearData = DATA.filter(d => d.y === targetYear && d.pt !== 'ประเทศไทย' && d[activeAge] != null);
-  
-  const sorted = yearData.sort((a,b) => parseFloat(b[activeAge]) - parseFloat(a[activeAge])).slice(0, 10);
-  
-  if (!sorted.some(d => d.pt === activeProv)) {
-    const targetData = yearData.find(d => d.pt === activeProv);
-    if(targetData) sorted.push(targetData);
-  }
+// --- KPI ---
+function renderKPI(filtered) {
+  const strip = document.getElementById('kpiStrip');
+  const withAge = filtered.filter(d=>d[activeAge]!=null);
+  const withEdu = filtered.filter(d=>d.hi!=null);
+  const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
 
-  const maxV = sorted.length ? parseFloat(sorted[0][activeAge]) : 1;
-  document.getElementById('rankBars').innerHTML = sorted.map((d, i) => {
-    const isTarget = d.pt === activeProv;
-    return `
-    <div class="bar-item">
-      <div class="bar-meta">
-        <span class="${isTarget ? 'text-highlight' : ''}">${i+1}. ${d.pt}</span>
-        <span style="font-family:'IBM Plex Mono'; font-weight:600;">${d[activeAge]} ปี</span>
-      </div>
-      <div class="bar-track">
-        <div class="bar-fill ${isTarget ? 'highlight' : ''}" style="width:${(d[activeAge]/maxV*100)}%"></div>
-      </div>
+  const ageVals = withAge.map(d=>d[activeAge]);
+  const hiVals = withEdu.map(d=>d.hi);
+  const bpVals = withEdu.map(d=>d.bp).filter(v=>v!=null);
+  const maxProv = withAge.length>0 ? withAge.reduce((a,b)=>a[activeAge]>b[activeAge]?a:b) : null;
+  const minProv = withAge.length>0 ? withAge.reduce((a,b)=>a[activeAge]<b[activeAge]?a:b) : null;
+
+  strip.innerHTML = `
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-val">${filtered.length}</div>
+      <div class="kpi-label">records ที่กรอง</div>
+    </div>
+    <div class="kpi-card kpi-accent">
+      <div class="kpi-val" style="color:var(--accent)">${ageVals.length>0?avg(ageVals).toFixed(2):'—'}</div>
+      <div class="kpi-label">ปีการศึกษาเฉลี่ย (${AGE_LABELS[activeAge]})</div>
+      <div class="kpi-sub">เฉลี่ยทุก records</div>
+    </div>
+    <div class="kpi-card kpi-green">
+      <div class="kpi-val" style="color:var(--green)">${maxProv?maxProv[activeAge]:'—'}</div>
+      <div class="kpi-label">สูงสุด</div>
+      <div class="kpi-sub">${maxProv?maxProv.pt+' '+maxProv.y:''}</div>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <div class="kpi-val" style="color:var(--orange)">${minProv?minProv[activeAge]:'—'}</div>
+      <div class="kpi-label">ต่ำสุด</div>
+      <div class="kpi-sub">${minProv?minProv.pt+' '+minProv.y:''}</div>
+    </div>
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-val">${hiVals.length>0?avg(hiVals).toFixed(1)+'%':'—'}</div>
+      <div class="kpi-label">% อุดมศึกษา (เฉลี่ย)</div>
+    </div>
+    <div class="kpi-card kpi-orange">
+      <div class="kpi-val" style="color:var(--orange)">${bpVals.length>0?avg(bpVals).toFixed(1)+'%':'—'}</div>
+      <div class="kpi-label">% ต่ำกว่าประถม (เฉลี่ย)</div>
+    </div>
+  `;
+  document.getElementById('recordCount').textContent = filtered.length;
+}
+
+// --- Edu bars ---
+function renderEduBars(filtered) {
+  const withEdu = filtered.filter(d=>d.hi!=null);
+  if (!withEdu.length) { document.getElementById('eduBars').innerHTML='<div class="no-data"><div class="no-data-icon">📊</div>ไม่มีข้อมูล</div>'; return; }
+  const avg = key => withEdu.reduce((a,b)=>a+(b[key]||0),0)/withEdu.length;
+  const levels = [
+    {key:'hi', label:'อุดมศึกษา', color:'#0369a1'},
+    {key:'us', label:'ม.ปลาย', color:'#0ea5e9'},
+    {key:'ls', label:'ม.ต้น', color:'#38bdf8'},
+    {key:'pr', label:'ประถมศึกษา', color:'#f97316'},
+    {key:'bp', label:'ต่ำกว่าประถม', color:'#dc2626'},
+  ];
+  const maxV = Math.max(...levels.map(l=>avg(l.key)));
+  document.getElementById('eduBars').innerHTML = levels.map(l=>{
+    const v = avg(l.key).toFixed(1);
+    const w = (avg(l.key)/maxV*100).toFixed(1);
+    return `<div class="bar-item">
+      <div class="bar-meta"><span class="bar-name">${l.label}</span><span class="bar-val" style="color:${l.color}">${v}%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${w}%;background:${l.color}"></div></div>
     </div>`;
   }).join('');
-  
-  document.getElementById('rankTag').innerText = `ปี ${targetYear} | ${AGE_LABELS[activeAge]}`;
+  const year = yearFilter || '2568';
+  document.getElementById('eduTag').textContent = yearFilter ? `ปี ${yearFilter}` : 'ทุกปี';
 }
 
-// 5. วาดกราฟเส้น
-function renderTrend() {
+// --- Top 10 ranking ---
+function renderRanking(filtered) {
+  const withAge = filtered.filter(d=>d[activeAge]!=null && d.pt!=='ประเทศไทย');
+  if (!withAge.length) { document.getElementById('rankBars').innerHTML='<div class="no-data"><div class="no-data-icon">🏅</div>ไม่มีข้อมูลกลุ่มอายุนี้</div>'; return; }
+  const sorted = [...withAge].sort((a,b)=>b[activeAge]-a[activeAge]).slice(0,10);
+  const maxV = sorted[0][activeAge];
+  document.getElementById('rankBars').innerHTML = sorted.map((d,i)=>{
+    const cls = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    return `<div class="bar-item">
+      <div class="bar-meta">
+        <span class="bar-name"><span class="rank-badge ${cls}">${i+1}</span> ${d.pt} <span style="font-size:11px;color:var(--muted)">${d.y}</span></span>
+        <span class="bar-val">${d[activeAge]}</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(d[activeAge]/maxV*100).toFixed(1)}%"></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('rankTag').textContent = AGE_LABELS[activeAge];
+}
+
+// --- Trend chart ---
+function renderTrend(filtered) {
   const svg = document.getElementById('trendSvg');
-  svg.setAttribute('viewBox', '0 0 800 240'); 
+  const W=900, H=220, PL=44, PR=20, PT=16, PB=36;
+  const YEARS = [2563,2564,2565,2566,2567,2568];
 
-  const YEARS = [...new Set(DATA.map(d => d.y))].sort((a,b) => a - b);
-  const plotProvinces = [activeProv, 'กรุงเทพมหานคร', 'ประเทศไทย']; 
-  
+  // Group by province
+  const provSet = provFilter ? [provFilter] :
+    [...new Set(filtered.filter(d=>d.pt!=='ประเทศไทย'&&d[activeAge]!=null).map(d=>d.pt))].slice(0,6);
+  // Always include Thailand if present
+  const showTH = filtered.some(d=>d.pt==='ประเทศไทย'&&d[activeAge]!=null);
+
+  const series = [];
+  provSet.forEach((p,i)=>{
+    const pts = YEARS.map(y=>{ const r=filtered.find(d=>d.pt===p&&d.y===y); return r&&r[activeAge]!=null?r[activeAge]:null; });
+    if (pts.some(v=>v!=null)) series.push({name:p, data:pts, color:COLORS[i%COLORS.length]});
+  });
+  if (showTH) {
+    const pts = YEARS.map(y=>{ const r=DATA.find(d=>d.pt==='ประเทศไทย'&&d.y===y); return r&&r[activeAge]!=null?r[activeAge]:null; });
+    series.push({name:'ประเทศไทย', data:pts, color:'#dc2626', dash:'6,3'});
+  }
+
+  if (!series.length) { svg.innerHTML='<text x="450" y="120" text-anchor="middle" fill="#94a3b8" font-size="14">ไม่มีข้อมูลแนวโน้มสำหรับตัวกรองนี้</text>'; return; }
+
+  const allVals = series.flatMap(s=>s.data).filter(v=>v!=null);
+  const minV = Math.min(...allVals)-0.5, maxV = Math.max(...allVals)+0.5;
+  const xStep = (W-PL-PR)/(YEARS.length-1);
+  const ys = v => PT + (maxV-v)/(maxV-minV)*(H-PT-PB);
+  const xs = i => PL + i*xStep;
+
+  // Grid lines
+  const gridCount = 4;
   let svgContent = '';
-  const W = 800, H = 240, PT = 20, PB = 40, PL = 50, PR = 80;
-  
-  const allVals = DATA.filter(d => plotProvinces.includes(d.pt) && d[activeAge] != null)
-                      .map(d => parseFloat(d[activeAge]))
-                      .filter(v => !isNaN(v));
-
-  const minV = allVals.length ? Math.floor(Math.min(...allVals)) - 0.5 : 5;
-  const maxV = allVals.length ? Math.ceil(Math.max(...allVals)) + 0.5 : 12;
-  
-  const xs = i => PL + (i * ((W - PL - PR) / Math.max(1, YEARS.length - 1)));
-  const ys = v => PT + ((maxV - v) / (maxV - minV) * (H - PT - PB));
-
-  YEARS.forEach((y, i) => {
-    svgContent += `<text x="${xs(i)}" y="${H - 15}" text-anchor="middle" fill="#64748b" font-family="IBM Plex Mono" font-size="12">${y}</text>`;
+  for (let i=0;i<=gridCount;i++) {
+    const v = minV + (maxV-minV)*i/gridCount;
+    const y = ys(v);
+    svgContent += `<line x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}" stroke="rgba(3,105,161,.08)" stroke-width="1"/>`;
+    svgContent += `<text x="${PL-6}" y="${y+4}" text-anchor="end" fill="#94a3b8" font-size="9" font-family="IBM Plex Mono">${v.toFixed(1)}</text>`;
+  }
+  // X labels
+  YEARS.forEach((y,i) => {
+    svgContent += `<text x="${xs(i)}" y="${H-PB+18}" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="IBM Plex Mono">${y}</text>`;
   });
 
-  plotProvinces.forEach((prov, index) => {
-    const isTarget = prov === activeProv;
-    const isTH = prov === 'ประเทศไทย';
-    const strokeColor = isTarget ? '#2563eb' : (isTH ? '#1e3a8a' : '#93c5fd');
-    const strokeWidth = isTarget ? 4 : 2;
-    
-    let path = '';
-    let isFirstPoint = true; 
-    let lastPoint = null;
-
-    YEARS.forEach((y, i) => {
-      const d = DATA.find(item => item.pt === prov && item.y === y);
-      if(d && d[activeAge] != null) {
-        const val = parseFloat(d[activeAge]);
-        if(!isNaN(val)) {
-          const px = xs(i); const py = ys(val);
-          path += (isFirstPoint ? `M ${px},${py}` : ` L ${px},${py}`);
-          isFirstPoint = false;
-          svgContent += `<circle cx="${px}" cy="${py}" r="${isTarget ? 5 : 3}" fill="${strokeColor}"></circle>`;
-          lastPoint = { x: px, y: py, val: val };
-        }
-      }
+  // Lines & dots
+  series.forEach(s => {
+    const pts = s.data.map((v,i)=>v!=null?`${xs(i)},${ys(v)}`:null);
+    let path = ''; let inPath = false;
+    pts.forEach((p,i)=>{
+      if (p) { path += (inPath?` L `:' M ') + p; inPath=true; }
+      else inPath=false;
     });
-    
-    const dash = isTH ? 'stroke-dasharray="6,4"' : '';
-    if(path !== '') {
-      svgContent += `<path d="${path}" fill="none" stroke="${strokeColor}" stroke-width="${strokeWidth}" ${dash}></path>`;
-    }
-    if (lastPoint) {
-       // ขยับแกน Y ของ Label ไม่ให้ซ้อนกัน
-       let labelY = lastPoint.y + 4;
-       if (index > 0) labelY += (index * 2); 
-       svgContent += `<text x="${lastPoint.x + 12}" y="${labelY}" fill="${strokeColor}" font-weight="${isTarget ? 'bold' : 'normal'}" font-size="12">${prov}</text>`;
-    }
+    const dash = s.dash ? `stroke-dasharray="${s.dash}"` : '';
+    svgContent += `<path d="${path}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" ${dash}/>`;
+    s.data.forEach((v,i)=>{
+      if (v!=null) svgContent += `<circle cx="${xs(i)}" cy="${ys(v)}" r="4" fill="${s.color}" stroke="#fff" stroke-width="1.5"><title>${s.name} ${YEARS[i]}: ${v}</title></circle>`;
+    });
   });
 
   svg.innerHTML = svgContent;
+
+  // Legend
+  const legend = document.getElementById('trendLegend');
+  legend.innerHTML = series.map(s=>`<div class="legend-item"><div class="legend-dot" style="background:${s.color}"></div>${s.name}</div>`).join('');
+  document.getElementById('trendTitle').textContent = provFilter ? `แนวโน้ม: ${provFilter}` : `แนวโน้มปีการศึกษาเฉลี่ย (สูงสุด 6 จังหวัด)`;
 }
 
-// 6. ตั้งค่าแผนที่ครั้งแรก
-function initMap() {
-  map = L.map('map').setView([13.736717, 100.523186], 5);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 20
-  }).addTo(map);
+// --- Table Heatmap ---
+function renderTable(filtered) {
+  // 1. หาค่า Min/Max ของแต่ละคอลัมน์เพื่อทำสเกลสี
+  const getMinMax = (key) => {
+    const vals = filtered.map(d => d[key]).filter(v => v != null);
+    if(vals.length === 0) return { min: 0, max: 0 };
+    return { min: Math.min(...vals), max: Math.max(...vals) };
+  };
 
-  fetch('https://raw.githubusercontent.com/chingchai/OpenGISData-Thailand/master/provinces.geojson')
-    .then(r => r.json())
-    .then(data => {
-      geoJsonData = data;
-      updateMapLayer();
-    });
-}
+  const scales = {
+    hi: getMinMax('hi'),      // อุดมศึกษา
+    us: getMinMax('us'),      // ม.ปลาย
+    ls: getMinMax('ls'),      // ม.ต้น
+    pr: getMinMax('pr'),      // ประถม
+    bp: getMinMax('bp'),      // ต่ำกว่าประถม
+    a1559: getMinMax('a1559') // เฉลี่ย 15-59
+  };
 
-// 7. อัปเดตสีและไฮไลต์บนแผนที่
-function updateMapLayer() {
-  if(geoLayer) map.removeLayer(geoLayer);
+  // 2. ฟังก์ชันคำนวณความเข้มของสี (Opacity) ตามค่าข้อมูล
+  const getColor = (val, min, max, baseR, baseG, baseB) => {
+    if (val == null) return 'transparent';
+    const ratio = (max === min) ? 0 : (val - min) / (max - min);
+    // ปรับระดับความเข้มตั้งแต่ 5% ถึง 85%
+    const alpha = 0.05 + (ratio * 0.80); 
+    return `rgba(${baseR}, ${baseG}, ${baseB}, ${alpha})`;
+  };
 
-  const targetYear = activeYear ? parseInt(activeYear) : Math.max(...DATA.map(d => d.y));
-  const yearData = DATA.filter(d => d.y === targetYear);
-  document.getElementById('mapTag').innerText = `ปี ${targetYear} | ${AGE_LABELS[activeAge]}`;
-
-  // หาสเกลสีแบบอัตโนมัติ ตามกลุ่มอายุ
-  const vals = yearData.map(d => parseFloat(d[activeAge])).filter(v => !isNaN(v));
-  const maxV = vals.length ? Math.max(...vals) : 12;
-  const minV = vals.length ? Math.min(...vals) : 4;
-  const range = maxV - minV;
-
-  function getDynamicColor(d) {
-    if(!d) return '#f1f5f9';
-    const pct = (d - minV) / range;
-    if(pct > 0.8) return '#1e3a8a';
-    if(pct > 0.6) return '#2563eb';
-    if(pct > 0.4) return '#60a5fa';
-    if(pct > 0.2) return '#93c5fd';
-    return '#dbeafe';
-  }
-
-  geoLayer = L.geoJson(geoJsonData, {
-    style: function (feature) {
-      const provName = feature.properties.pro_th; 
-      const provData = yearData.find(d => d.pt === provName);
-      const val = provData && provData[activeAge] ? parseFloat(provData[activeAge]) : 0;
-      const isTarget = provName === activeProv; // เช็กว่าเป็นจังหวัดเป้าหมายหรือไม่
-
-      return {
-        fillColor: getDynamicColor(val),
-        weight: isTarget ? 3 : 1,             // ถ้าเป็นจังหวัดที่เลือก ให้เส้นขอบหนา
-        color: isTarget ? '#ea580c' : 'white', // สีขอบสีส้ม ถ้าถูกเลือก
-        fillOpacity: 0.85
-      };
-    },
-    onEachFeature: function (feature, layer) {
-      const provName = feature.properties.pro_th;
-      const provData = yearData.find(d => d.pt === provName);
-      const val = provData && provData[activeAge] ? provData[activeAge] + " ปี" : "ไม่มีข้อมูล";
-      
-      // ตั้งค่า Popup
-      layer.bindPopup(`<div style="text-align:center; font-family:'Sarabun'">
-        <b>${provName}</b><br>
-        <span style="color:#2563eb; font-weight:bold;">${val}</span><br>
-        <small style="color:#64748b">(คลิกเพื่อเปรียบเทียบ)</small>
-      </div>`);
-
-      // ทำให้กดที่แผนที่แล้วค่า Dropdown/กราฟเปลี่ยนตาม
-      layer.on('click', function() {
-        document.getElementById('provSel').value = provName;
-        activeProv = provName;
-        updateDashboard();
-      });
+  // 3. ฟังก์ชันสร้างแท็ก <td> พร้อมสีพื้นหลัง
+  const n = (val, scale, r, g, b) => {
+    if (val != null) {
+      const bg = scale ? getColor(val, scale.min, scale.max, r, g, b) : 'transparent';
+      return `<td class="td-num" style="background:${bg}; transition: background 0.3s;">${val}</td>`;
     }
-  }).addTo(map);
+    return `<td class="td-num na">—</td>`;
+  };
+
+  // 4. วาดตารางและใส่สีตามชุดข้อมูล
+  document.getElementById('tableBody').innerHTML = filtered.slice(0,300).map((d,i)=>`<tr>
+    <td><span class="rank-badge">${i+1}</span></td>
+    <td class="td-province">${d.pt}</td>
+    <td style="color:var(--muted);font-size:12px">${d.pe}</td>
+    <td class="td-year">${d.y}</td>
+    ${n(d.hi, scales.hi, 3, 105, 161)}       <!-- อุดมศึกษา (น้ำเงิน) -->
+    ${n(d.us, scales.us, 14, 165, 233)}      <!-- ม.ปลาย (ฟ้าสว่าง) -->
+    ${n(d.ls, scales.ls, 56, 189, 248)}      <!-- ม.ต้น (ฟ้าอ่อน) -->
+    ${n(d.pr, scales.pr, 234, 88, 12)}       <!-- ประถม (ส้ม) -->
+    ${n(d.bp, scales.bp, 220, 38, 38)}       <!-- ต่ำกว่าประถม (แดง) -->
+    ${n(d.a1539, null, 0, 0, 0)}             <!-- ไม่ทำสี -->
+    ${n(d.a1559, scales.a1559, 5, 150, 105)} <!-- เฉลี่ย 15-59 (เขียว) -->
+    ${n(d.a4059, null, 0, 0, 0)}             <!-- ไม่ทำสี -->
+    ${n(d.a15up, null, 0, 0, 0)}             <!-- ไม่ทำสี -->
+    ${n(d.s60, null, 0, 0, 0)}               <!-- ไม่ทำสี -->
+  </tr>`).join('');
+  
+  document.getElementById('tableCount').textContent = `${filtered.length} rows${filtered.length>300?' (แสดง 300 แรก)':''} · แสดงผล Heatmap`;
 }
 
-function exportDashboard() {
-  const target = document.getElementById('dashboardArea');
-  const btn = document.querySelector('.export-btn');
-  btn.style.display = 'none'; 
-  html2canvas(target, { backgroundColor: '#f8fafc', scale: 2, useCORS: true }).then(canvas => {
-    const link = document.createElement('a');
-    link.download = `Education_Index_${activeProv}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    btn.style.display = 'flex'; 
-  });
+// --- Main render ---
+function render() {
+  const f = getFiltered();
+  renderKPI(f);
+  renderEduBars(f);
+  renderRanking(f);
+  renderTrend(f);
+  renderTable(f);
 }
+
+initFilters();
+render();
 </script>
 </body>
 </html>
